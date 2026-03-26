@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plantmaster-v23'; // Zvýšená verze vynutí aktualizaci v mobilu
+const CACHE_NAME = 'plantmaster-v24'; // Zvýšená verze vynutí aktualizaci v mobilu
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

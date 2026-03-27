@@ -933,24 +933,21 @@
                     const matchName = p.name.toLowerCase().includes(search);
 
                     // --- OPRAVA FILTROVÁNÍ PRO VÍCE KATEGORIÍ ---
-                    // Kontroluje, zda p.category je pole (nové rostliny) nebo jen text (staré rostliny)
                     let matchCat = false;
                     if (cat === 'all') {
                         matchCat = true;
                     } else if (Array.isArray(p.category)) {
-                        matchCat = p.category.includes(cat); // Najde kategorii v seznamu
+                        matchCat = p.category.includes(cat);
                     } else {
-                        matchCat = p.category === cat; // Zpětná kompatibilita pro staré uložení
+                        matchCat = p.category === cat;
                     }
 
                     // --- OPRAVA VYKRESLENÍ ŠTÍTKŮ ---
                     let badgesHTML = '';
                     if (p.category) {
                         if (Array.isArray(p.category)) {
-                            // Vytvoří štítek pro každou kategorii v seznamu a oddělí je mezerou
                             badgesHTML = p.category.map(c => `<span class="cat-badge-small">${c}</span>`).join(' ');
                         } else {
-                            // Pro staré rostliny vykreslí jen jeden
                             badgesHTML = `<span class="cat-badge-small">${p.category}</span>`;
                         }
                     }
@@ -970,13 +967,11 @@
                                 dneska.setHours(0, 0, 0, 0);
                                 const diff = Math.floor((dneska - dateWatered) / (1000 * 60 * 60 * 24));
 
-                                // Pokud je počet dní od poslední zálivky větší nebo roven intervalu
                                 if (diff >= interval) {
                                     needsWater = true;
                                 }
                             }
                         } else {
-                            // Pokud ještě nikdy nebyla zalitá, určitě potřebuje vodu
                             needsWater = true;
                         }
 
@@ -984,7 +979,6 @@
                             waterWarning = `<span style="background-color: #f44336; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 8px;">💧 ŽÍZEŇ</span>`;
                         }
                     } else {
-                        // Pokud je zapnutá pauza (Dovolená)
                         waterWarning = `<span style="color: #e65100; font-size: 0.75rem; margin-left: 8px;" title="Zálivka pozastavena">⏸️ Pauza</span>`;
                     }
 
@@ -1005,6 +999,9 @@
                 if (list.innerHTML === '') list.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px;">Zatím nemáš žádné rostliny.</p>';
 
                 renderGroupedTasks(req.result);
+
+                // --- NOVÝ ŘÁDEK: Zkontroluje, jestli má zobrazit záchrannou brzdu po překreslení ---
+                checkUndoButtonVisibility();
             };
         }
 
@@ -1144,7 +1141,134 @@
                 };
             };
         }
+        // --- 🌧️ HROMADNÁ ZÁLIVKA: Otevírání okénka a hlídač ---
 
+        function openBulkWaterModal() {
+            document.getElementById('bulk-water-modal').style.display = 'flex';
+        }
+
+        function closeBulkWaterModal() {
+            document.getElementById('bulk-water-modal').style.display = 'none';
+        }
+
+        function checkUndoButtonVisibility() {
+            const btn = document.getElementById('undo-bulk-btn');
+            if (!btn) return;
+
+            // Podíváme se do paměti, jestli jsme dnes hromadně zalévali
+            const savedDate = localStorage.getItem('bulkWateringUndoDate');
+            const dnes = new Date().toLocaleDateString('cs-CZ');
+
+            // Pokud se uložené datum shoduje s dneškem, tlačítko ukážeme
+            if (savedDate === dnes) {
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+        // --- 🌧️ HROMADNÁ ZÁLIVKA: Samotná akce ---
+
+        async function confirmBulkWatering() {
+            const category = document.getElementById('bulk-water-category').value;
+            const dnes = new Date().toLocaleDateString('cs-CZ');
+
+            const db = await getDB();
+            const tx = db.transaction('plants', 'readwrite');
+            const store = tx.objectStore('plants');
+            const req = store.getAll();
+
+            req.onsuccess = () => {
+                const plants = req.result;
+                let updatedCount = 0;
+
+                plants.forEach(p => {
+                    // Zkontrolujeme, zda rostlina patří do vybrané kategorie (staré i nové uložení)
+                    let matchCat = false;
+                    if (Array.isArray(p.category)) {
+                        matchCat = p.category.includes(category);
+                    } else {
+                        matchCat = p.category === category;
+                    }
+
+                    if (matchCat) {
+                        // 1. Aktualizujeme hlavní datum
+                        p.lastWatered = dnes;
+
+                        // 2. Přidáme do historie
+                        if (!p.careHistory) p.careHistory = [];
+                        p.careHistory.push({
+                            date: dnes,
+                            text: '🌧️ Hromadná zálivka'
+                        });
+
+                        store.put(p);
+                        updatedCount++;
+                    }
+                });
+
+                tx.oncomplete = () => {
+                    closeBulkWaterModal();
+                    if (updatedCount > 0) {
+                        alert(`Úspěšně zalito ${updatedCount} rostlin v kategorii "${category}".`);
+                        // Uložíme dnešní datum pro zobrazení záchranné brzdy
+                        localStorage.setItem('bulkWateringUndoDate', dnes);
+                        checkUndoButtonVisibility();
+                        renderPlants(); // Překreslíme seznam, aby zmizely červené štítky
+                    } else {
+                        alert(`V kategorii "${category}" aktuálně nemáte žádné rostliny.`);
+                    }
+                };
+            };
+        }
+        // --- ↩️ VZÍT ZPĚT HROMADNOU ZÁLIVKU ---
+
+        async function undoBulkWatering() {
+            if (!confirm("Opravdu chcete vzít zpět dnešní hromadnou zálivku?")) return;
+
+            const dnes = new Date().toLocaleDateString('cs-CZ');
+            const db = await getDB();
+            const tx = db.transaction('plants', 'readwrite');
+            const store = tx.objectStore('plants');
+            const req = store.getAll();
+
+            req.onsuccess = () => {
+                const plants = req.result;
+                let revertedCount = 0;
+
+                plants.forEach(p => {
+                    if (p.careHistory && p.careHistory.length > 0) {
+                        // Podíváme se na úplně poslední záznam v historii
+                        const lastEntryIndex = p.careHistory.length - 1;
+                        const lastEntry = p.careHistory[lastEntryIndex];
+
+                        // Zkontrolujeme, jestli je to skutečně dnešní hromadná zálivka
+                        if (lastEntry.date === dnes && lastEntry.text === '🌧️ Hromadná zálivka') {
+                            // Smažeme tento falešný záznam
+                            p.careHistory.splice(lastEntryIndex, 1);
+
+                            // Obnovíme předchozí datum zálivky (úplně stejná logika jako u normálního smazání)
+                            const ostatniZalivky = p.careHistory.filter(h => h.text.toLowerCase().includes('zalit') || h.text.toLowerCase().includes('zálivk'));
+                            if (ostatniZalivky.length > 0) {
+                                p.lastWatered = ostatniZalivky[ostatniZalivky.length - 1].date;
+                            } else {
+                                p.lastWatered = "";
+                            }
+
+                            store.put(p);
+                            revertedCount++;
+                        }
+                    }
+                });
+
+                tx.oncomplete = () => {
+                    alert(`Hromadná zálivka byla zrušena u ${revertedCount} rostlin.`);
+                    // Smažeme pojistku z paměti, tlačítko už nebude potřeba
+                    localStorage.removeItem('bulkWateringUndoDate');
+                    checkUndoButtonVisibility();
+                    renderPlants();
+                };
+            };
+        }
         async function waterPlant() {
             const db = await getDB();
             const tx = db.transaction('plants', 'readwrite');

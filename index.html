@@ -556,20 +556,35 @@
 
     <div class="container">
         <div
-            style="position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; margin-top: -10px; display: flex; gap: 10px;">
-            <input type="text" id="search-box" placeholder="Hledat..." oninput="renderPlants()"
-                style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem; outline: none; box-sizing: border-box;">
+            style="position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; margin-top: -10px; display: flex; flex-direction: column; gap: 10px;">
 
-            <select class="filter-select" id="filter-category" onchange="renderPlants()"
-                style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem; outline: none; background: white; color: #444; box-sizing: border-box; margin: 0;">
-                <option value="all">Všechny kategorie</option>
-                <option value="Pokojové">Pokojové</option>
-                <option value="Zelenina">Zelenina</option>
-                <option value="Ovoce">Ovoce</option>
-                <option value="Bylinky">Bylinky</option>
-                <option value="Stromy">Stromy</option>
-                <option value="Keře">Keře</option>
-            </select>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="search-box" placeholder="Hledat..." oninput="renderPlants()"
+                    style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem; outline: none; box-sizing: border-box;">
+
+                <select class="filter-select" id="filter-category" onchange="renderPlants()"
+                    style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem; outline: none; background: white; color: #444; box-sizing: border-box; margin: 0;">
+                    <option value="all">Všechny kategorie</option>
+                    <option value="Pokojové">Pokojové</option>
+                    <option value="Zelenina">Zelenina</option>
+                    <option value="Ovoce">Ovoce</option>
+                    <option value="Bylinky">Bylinky</option>
+                    <option value="Stromy">Stromy</option>
+                    <option value="Keře">Keře</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button onclick="waterFilteredPlants()"
+                    style="flex: 1; background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem;">
+                    🌧️ Zalít zobrazené
+                </button>
+                <button id="undo-bulk-btn" onclick="undoBulkWatering()"
+                    style="display: none; flex: 1; background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem;">
+                    ↩️ Vzít zpět
+                </button>
+            </div>
+
         </div>
 
         <div id="inbox-section">

@@ -575,9 +575,9 @@
             </div>
 
             <div style="display: flex; gap: 10px;">
-                <button onclick="waterFilteredPlants()"
+                <button onclick="openBulkWaterModal()"
                     style="flex: 1; background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem;">
-                    🌧️ Zalít zobrazené
+                    🌧️ Hromadná zálivka
                 </button>
                 <button id="undo-bulk-btn" onclick="undoBulkWatering()"
                     style="display: none; flex: 1; background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem;">
@@ -587,24 +587,26 @@
 
         </div>
 
-        <div id="inbox-section">
-            <h3>📥 Nové video z YouTube</h3>
-            <p id="inbox-url-display" style="font-size: 0.85rem; word-break: break-all; color: #555;"></p>
-            <div class="inbox-controls">
-                <select id="inbox-plant-select">
-                    <option value="">Vyber rostlinu...</option>
-                </select>
-                <button class="btn-complete" onclick="saveInboxVideo()">Uložit</button>
-                <button class="btn-undo" style="background:var(--warn);" onclick="clearInbox()">Zahodit</button>
-            </div>
-        </div>
+    </div>
 
-        <div class="calendar-section">
-            <h3>📅 Úkoly na tento měsíc</h3>
-            <div id="calendar-tasks"></div>
+    <div id="inbox-section">
+        <h3>📥 Nové video z YouTube</h3>
+        <p id="inbox-url-display" style="font-size: 0.85rem; word-break: break-all; color: #555;"></p>
+        <div class="inbox-controls">
+            <select id="inbox-plant-select">
+                <option value="">Vyber rostlinu...</option>
+            </select>
+            <button class="btn-complete" onclick="saveInboxVideo()">Uložit</button>
+            <button class="btn-undo" style="background:var(--warn);" onclick="clearInbox()">Zahodit</button>
         </div>
+    </div>
 
-        <div id="plant-list"></div>
+    <div class="calendar-section">
+        <h3>📅 Úkoly na tento měsíc</h3>
+        <div id="calendar-tasks"></div>
+    </div>
+
+    <div id="plant-list"></div>
     </div>
 
     <button class="fab" style="font-size: 24px;" onclick="document.getElementById('gallery-input').click()">🖼️</button>
@@ -2169,7 +2171,37 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                 jdeme na to! 🚀</button>
         </div>
     </div>
+    <div id="bulk-water-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center;">
+        <div
+            style="background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h3 style="margin-top: 0; color: #1565c0; display: flex; align-items: center; gap: 8px;">🌧️ Hromadná
+                zálivka</h3>
+            <p style="font-size: 0.95rem; color: #555; margin-bottom: 15px;">Vyberte kategorii rostlin, kterou chcete
+                kompletně označit jako zalitou (s dnešním datem):</p>
 
+            <select id="bulk-water-category"
+                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; outline: none; background: white; margin-bottom: 20px;">
+                <option value="Pokojové">Pokojové</option>
+                <option value="Zelenina">Zelenina</option>
+                <option value="Ovoce">Ovoce</option>
+                <option value="Bylinky">Bylinky</option>
+                <option value="Stromy">Stromy</option>
+                <option value="Keře">Keře</option>
+            </select>
+
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeBulkWaterModal()"
+                    style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; background: #f5f5f5; color: #333; font-weight: bold; cursor: pointer;">
+                    Zrušit
+                </button>
+                <button onclick="confirmBulkWatering()"
+                    style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #1565c0; color: white; font-weight: bold; cursor: pointer;">
+                    Zalít vybrané
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

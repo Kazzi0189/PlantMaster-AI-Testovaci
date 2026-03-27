@@ -1402,29 +1402,29 @@
                     }
                 }
 
-                const interval = plant.wateringInterval || 7; // Pokud uživatel nezadá jinak, počítáme se 7 dny
+                const interval = plant.wateringInterval || 7;
                 const isPaused = plant.wateringPaused || false;
 
                 let waterHTML = `
-                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px; padding:10px; background:#e3f2fd; border-radius:8px; border:1px solid #bbdefb;">
-                        <div style="font-size:0.95rem; color:#1565c0; font-weight:bold;">💧 ${wText}</div>
-                        
-                        <div style="font-size:0.9rem; color:#333; display:flex; align-items:center; gap:8px;">
-                            <span>⏱️ Zalévat každých: <strong>${interval} dní</strong></span>
-                            <button onclick="editWateringInterval(${plant.id}, ${interval}, event)" style="background:white; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:0.9rem; padding:2px 6px;" title="Upravit interval">✏️</button>
-                        </div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px; padding:10px; background:#e3f2fd; border-radius:8px; border:1px solid #bbdefb;">
+                <div style="font-size:0.95rem; color:#1565c0; font-weight:bold;">💧 ${wText}</div>
+                
+                <div style="font-size:0.9rem; color:#333; display:flex; align-items:center; gap:8px;">
+                    <span>⏱️ Zalévat každých: <strong>${interval} dní</strong></span>
+                    <button onclick="editWateringInterval(${plant.id}, ${interval}, event)" style="background:white; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:0.9rem; padding:2px 6px;" title="Upravit interval">✏️</button>
+                </div>
 
-                        <div>
-                            <button onclick="toggleWateringPause(${plant.id}, ${isPaused}, event)" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid ${isPaused ? '#4caf50' : '#ff9800'}; background:${isPaused ? '#e8f5e9' : '#fff3e0'}; color:${isPaused ? '#2e7d32' : '#e65100'}; font-size:0.9rem; font-weight:bold; cursor:pointer;">
-                                ${isPaused ? '▶️ Sledování pozastaveno - ZAPNOUT' : '⏸️ Zapnout režim "Dovolená/Sklizeno"'}
-                            </button>
-                            
-                            <button onclick="exportToCalendar(${plant.id}, event)" style="width:100%; margin-top:8px; padding:8px 12px; border-radius:8px; border:1px solid #1976d2; background:#ffffff; color:#1565c0; font-size:0.9rem; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                📅 Přidat do systémového kalendáře
-                            </button>
-                        </div>
-                    </div>
-                `;
+                <div>
+                    <button onclick="toggleWateringPause(${plant.id}, ${isPaused}, event)" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid ${isPaused ? '#4caf50' : '#ff9800'}; background:${isPaused ? '#e8f5e9' : '#fff3e0'}; color:${isPaused ? '#2e7d32' : '#e65100'}; font-size:0.9rem; font-weight:bold; cursor:pointer;">
+                        ${isPaused ? '▶️ Sledování pozastaveno - ZAPNOUT' : '⏸️ Zapnout režim "Dovolená/Sklizeno"'}
+                    </button>
+                    
+                    <button onclick="exportToCalendar(${plant.id}, event)" style="width:100%; margin-top:8px; padding:8px 12px; border-radius:8px; border:1px solid #1976d2; background:#ffffff; color:#1565c0; font-size:0.9rem; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        📅 Přidat do systémového kalendáře
+                    </button>
+                </div>
+            </div>
+        `;
                 document.getElementById('water-status').innerHTML = waterHTML;
 
                 // --- ÚKOLY (S vylepšeným zobrazením přípravků) ---
@@ -1441,262 +1441,42 @@
                         if (isForThisMonth && !isDone) {
                             hasVisibleTasks = true;
 
-                            // Sestavení boxíku pro produkty k úkolu
                             let productsHTML = '';
                             if (task.taskProducts && task.taskProducts.length > 0) {
                                 productsHTML = `<div style="margin-top:10px; padding:10px; background:#f0f7f0; border-radius:8px; border:1px solid #c8e6c9;">
-                    <div style="font-size:0.8rem; font-weight:bold; color:#2e7d32; margin-bottom:5px;">💡 Doporučené přípravky pro tento úkol:</div>`;
+            <div style="font-size:0.8rem; font-weight:bold; color:#2e7d32; margin-bottom:5px;">💡 Doporučené přípravky pro tento úkol:</div>`;
                                 task.taskProducts.forEach(prod => {
                                     productsHTML += `
-                        <div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;">
-                            <span style="flex:1; font-size:0.85rem;">${prod}</span>
-                            <button class="btn-shop" style="padding:4px 8px; font-size:0.75rem;" onclick="window.open('https://www.heureka.cz/?h[fraze]=' + encodeURIComponent('${prod}'), '_blank')">🛒 Heureka</button>
-                            <button class="btn-shop" style="padding:4px 8px; font-size:0.75rem; background:var(--p);" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${prod}'), '_blank')">📖 Návod</button>
-                        </div>`;
+                <div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;">
+                    <span style="flex:1; font-size:0.85rem;">${prod}</span>
+                    <button class="btn-shop" style="padding:4px 8px; font-size:0.75rem;" onclick="window.open('https://www.heureka.cz/?h[fraze]=' + encodeURIComponent('${prod}'), '_blank')">🛒 Heureka</button>
+                    <button class="btn-shop" style="padding:4px 8px; font-size:0.75rem; background:var(--p);" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${prod}'), '_blank')">📖 Návod</button>
+                </div>`;
                                 });
                                 productsHTML += `</div>`;
                             }
 
                             tasksDiv.innerHTML += `
-                <div class="task-item" style="border: 1px solid #ccc; flex-direction: column; align-items: stretch; margin-bottom:10px; padding:10px;">
-                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                        <strong style="font-size: 1.05rem; color: var(--p);">${task.name}</strong>
-                        <button class="btn-complete" onclick="completeTask(${plant.id}, '${task.name}', event)">✓ Splnit</button>
-                    </div>
-                    <div style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
-                        ${task.desc || task.description || 'Popis úkolu chybí.'}
-                    </div>
-                    <button class="btn-sm-action" style="margin-top:0; border-color:#673ab7; color:#673ab7;" onclick="callAI('task-products', '${task.name}')">💡 Hledat přípravky k úkolu</button>
-                    ${productsHTML} 
-                </div>`;
+        <div class="task-item" style="border: 1px solid #ccc; flex-direction: column; align-items: stretch; margin-bottom:10px; padding:10px;">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <strong style="font-size: 1.05rem; color: var(--p);">${task.name}</strong>
+                <button class="btn-complete" onclick="completeTask(${plant.id}, '${task.name}', event)">✓ Splnit</button>
+            </div>
+            <div style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
+                ${task.desc || task.description || 'Popis úkolu chybí.'}
+            </div>
+            <button class="btn-sm-action" style="margin-top:0; border-color:#673ab7; color:#673ab7;" onclick="callAI('task-products', '${task.name}')">💡 Hledat přípravky k úkolu</button>
+            ${productsHTML} 
+        </div>`;
                         }
                     });
                 }
-                async function openDetail(id) {
-                    currentPlantId = id;
-                    const db = await getDB();
-                    const tx = db.transaction('plants', 'readonly');
-                    const req = tx.objectStore('plants').get(id);
 
-                    req.onsuccess = () => {
-                        const plant = req.result;
-                        if (!plant) return;
-
-                        // Titulek
-                        document.getElementById('detail-title').innerHTML = `${plant.name} <span onclick="editPlantName()" style="cursor:pointer; font-size:1.1rem; padding-left:8px; opacity:0.8;">✏️</span>`;
-
-                        // Občanka
-                        const infoCard = document.getElementById('plant-info-card');
-                        if (plant.description || plant.water || plant.light) {
-                            document.getElementById('plant-desc').innerText = plant.description || "Charakteristika zatím chybí.";
-                            document.querySelector('#plant-water-info span').innerText = plant.water || "Neznámá";
-                            document.querySelector('#plant-light-info span').innerText = plant.light || "Neznámé";
-                            infoCard.style.display = 'block';
-                        } else {
-                            infoCard.style.display = 'none';
-                        }
-
-                        // Galerie
-                        const gal = document.getElementById('detail-gallery');
-                        gal.innerHTML = '';
-                        plant.images.forEach(imgData => {
-                            gal.innerHTML += `<img src="${imgData}" onclick="openLightbox('${imgData}')">`;
-                        });
-
-                        // --- 💧 CHYTRÁ ZÁLIVKA (Zobrazení, výpočet dnů, tužka a pauza) ---
-                        let wText = "Zatím nezalito";
-                        if (plant.lastWatered) {
-                            const parts = plant.lastWatered.split('.').map(p => p.trim());
-                            if (parts.length === 3) {
-                                const dateWatered = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                                dateWatered.setHours(0, 0, 0, 0);
-                                const dneska = new Date();
-                                dneska.setHours(0, 0, 0, 0);
-                                const diff = Math.floor(Math.abs(dneska - dateWatered) / (1000 * 60 * 60 * 24));
-                                wText = `Naposledy: ${diff === 0 ? "Dnes" : (diff === 1 ? "Včera" : `Před ${diff} dny`)}`;
-                            }
-                        }
-
-                        const interval = plant.wateringInterval || 7; // Pokud uživatel nezadá jinak, počítáme se 7 dny
-                        const isPaused = plant.wateringPaused || false;
-
-                        let waterHTML = `
-                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px; padding:10px; background:#e3f2fd; border-radius:8px; border:1px solid #bbdefb;">
-                        <div style="font-size:0.95rem; color:#1565c0; font-weight:bold;">💧 ${wText}</div>
-                        
-                        <div style="font-size:0.9rem; color:#333; display:flex; align-items:center; gap:8px;">
-                            <span>⏱️ Zalévat každých: <strong>${interval} dní</strong></span>
-                            <button onclick="editWateringInterval(${plant.id}, ${interval}, event)" style="background:white; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:0.9rem; padding:2px 6px;" title="Upravit interval">✏️</button>
-                        </div>
-
-                        <div>
-                            <button onclick="toggleWateringPause(${plant.id}, ${isPaused}, event)" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid ${isPaused ? '#4caf50' : '#ff9800'}; background:${isPaused ? '#e8f5e9' : '#fff3e0'}; color:${isPaused ? '#2e7d32' : '#e65100'}; font-size:0.9rem; font-weight:bold; cursor:pointer;">
-                                ${isPaused ? '▶️ Sledování pozastaveno - ZAPNOUT' : '⏸️ Zapnout režim "Dovolená/Sklizeno"'}
-                            </button>
-                            
-                            <button onclick="exportToCalendar(${plant.id}, event)" style="width:100%; margin-top:8px; padding:8px 12px; border-radius:8px; border:1px solid #1976d2; background:#ffffff; color:#1565c0; font-size:0.9rem; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                📅 Přidat do systémového kalendáře
-                            </button>
-                        </div>
-                    </div>
-                `;
-                        document.getElementById('water-status').innerHTML = waterHTML;
-
-                        // --- ÚKOLY (S vylepšeným zobrazením přípravků) ---
-                        const tasksDiv = document.getElementById('detail-tasks');
-                        tasksDiv.innerHTML = '';
-                        const currentMonth = new Date().getMonth();
-                        let hasVisibleTasks = false;
-
-                        if (plant.tasks && Array.isArray(plant.tasks)) {
-                            plant.tasks.forEach(task => {
-                                const isForThisMonth = Array.isArray(task.months) ? task.months.includes(currentMonth) : task.month === currentMonth;
-                                const isDone = Array.isArray(task.completedMonths) && task.completedMonths.includes(currentMonth);
-
-                                if (isForThisMonth && !isDone) {
-                                    hasVisibleTasks = true;
-
-                                    // Sestavení boxíku pro produkty k úkolu
-                                    let productsHTML = '';
-                                    if (task.taskProducts && task.taskProducts.length > 0) {
-                                        productsHTML = `<div style="margin-top:10px; padding:10px; background:#f0f7f0; border-radius:8px; border:1px solid #c8e6c9;">
-                    <div style="font-size:0.8rem; font-weight:bold; color:#2e7d32; margin-bottom:5px;">💡 Doporučené přípravky pro tento úkol:</div>`;
-                                        task.taskProducts.forEach(prod => {
-                                            productsHTML += `
-                        <div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;">
-                            <span style="flex:1; font-size:0.85rem;">${prod}</span>
-                            <button class="btn-shop" style="padding:4px 8px; font-size:0.75rem;" onclick="window.open('https://www.heureka.cz/?h[fraze]=' + encodeURIComponent('${prod}'), '_blank')">🛒 Heureka</button>
-                            <button class="btn-shop" style="padding:4px 8px; font-size:0.75rem; background:var(--p);" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${prod}'), '_blank')">📖 Návod</button>
-                        </div>`;
-                                        });
-                                        productsHTML += `</div>`;
-                                    }
-
-                                    tasksDiv.innerHTML += `
-                <div class="task-item" style="border: 1px solid #ccc; flex-direction: column; align-items: stretch; margin-bottom:10px; padding:10px;">
-                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                        <strong style="font-size: 1.05rem; color: var(--p);">${task.name}</strong>
-                        <button class="btn-complete" onclick="completeTask(${plant.id}, '${task.name}', event)">✓ Splnit</button>
-                    </div>
-                    <div style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
-                        ${task.desc || task.description || 'Popis úkolu chybí.'}
-                    </div>
-                    <button class="btn-sm-action" style="margin-top:0; border-color:#673ab7; color:#673ab7;" onclick="callAI('task-products', '${task.name}')">💡 Hledat přípravky k úkolu</button>
-                    ${productsHTML} 
-                </div>`;
-                                }
-                            });
-                        }
-
-                        // --- STÁLÉ TLAČÍTKO PRO OBECNOU PÉČI ---
-                        const generalBtnHTML = `
-            <div style="text-align:center; margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
-                <button class="btn-sm-action" style="background:#f3e5f5; border-color:#9c27b0; color:#4a148c; font-weight:bold; width:100%; padding:10px;" onclick="callAI('products')">✨ Doporučit obecnou péči (hnojiva, substráty)</button>
-            </div>`;
-
-                        if (!hasVisibleTasks) {
-                            tasksDiv.innerHTML = '<p style="font-size:0.9rem; color:#666; text-align:center;">Všechny úkoly jsou hotové! 🎉</p>' + generalBtnHTML;
-                        } else {
-                            tasksDiv.innerHTML += generalBtnHTML;
-                        }
-
-                        // --- 🎬 YOUTUBE VIDEONÁVODY (Nový blok) ---
-                        // Vložíme ho za úkoly, těsně před AI paměť
-                        const ytHTML = `
-                <div style="margin-top:20px; padding:15px; background:#fff3e0; border:1px solid #ffcc80; border-radius:10px;">
-                    <div style="font-weight:bold; color:#e65100; margin-bottom:10px; display:flex; align-items:center; gap:5px;">
-                        🎬 Videonávody (YouTube)
-                    </div>
-                    <select id="yt-task-select" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ffb74d; margin-bottom:10px; outline:none;">
-                        <option value="jak pěstovat">Obecné (Jak pěstovat)</option>
-                        <option value="jak správně zalévat">Zálivka</option>
-                        <option value="kdy a jak hnojit">Hnojení</option>
-                        <option value="jak přesadit">Přesazování</option>
-                        <option value="jak stříhat řez">Řez a tvarování</option>
-                        <option value="jak množit řízkováním">Množení</option>
-                        <option value="choroby a škůdci">Choroby a škůdci</option>
-                        <option value="jak zazimovat">Zimování</option>
-                    </select>
-                    <button onclick="searchYouTube('${plant.name}')" style="width:100%; background:#ff0000; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                        ▶️ Najít videa
-                    </button>
-                </div>`;
-
-                        // Přilepíme ho na konec divu s úkoly
-                        tasksDiv.innerHTML += ytHTML;
-
-
-                        // --- AI PAMĚŤ (Rozšířená o nový oddělený box pro produkty) ---
-                        // 1. Detektiv
-                        const detBox = document.getElementById('ai-mem-detective');
-                        if (plant.aiDetection) {
-                            const jeToInstrukce = plant.aiDetection.length > 35;
-                            if (jeToInstrukce) {
-                                detBox.innerHTML = `<strong>📸 AI info:</strong> ${plant.aiDetection} <button onclick="callAI('detective')">🔄 Znovu</button>`;
-                            } else {
-                                detBox.innerHTML = `<strong>🔎 Odrůda:</strong> ${plant.aiDetection} <button onclick="updateProfileName('${plant.name} (${plant.aiDetection})')">Uložit</button>`;
-                            }
-                            detBox.style.display = 'block';
-                        } else { detBox.style.display = 'none'; }
-
-                        // 2. Doktor
-                        const docBox = document.getElementById('ai-mem-doctor');
-                        if (plant.aiDiagnosis) {
-                            let docContent = `<strong>🩺 Zdraví:</strong> ${plant.aiDiagnosis.description || plant.aiDiagnosis}`;
-                            if (plant.aiDiagnosis.hasProblem && plant.aiDiagnosis.searchKeyword) {
-                                docContent += `<button class="btn-sm-action" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${plant.aiDiagnosis.searchKeyword}'), '_blank')">🔍 Ověřit na Agromanual.cz</button>`;
-                            }
-                            docContent += `<button class="btn-sm-action" style="color:var(--warn); border-color:var(--warn);" onclick="deleteAIMemory('aiDiagnosis')">🗑️ Smazat diagnózu</button>`;
-                            docBox.innerHTML = docContent;
-                            docBox.style.display = 'block';
-                        } else { docBox.style.display = 'none'; }
-
-                        // 3. OBECNÉ PŘÍPRAVKY (Nezávislý šuplík dole)
-                        const prodBox = document.getElementById('ai-mem-products');
-                        if (plant.aiProducts && plant.aiProducts.length > 0) {
-                            let pHTML = `<div style="border: 2px solid #9c27b0; background: #fdf7ff; padding: 15px; border-radius: 12px; margin-top: 15px;">
-                <strong style="color:#4a148c; display:block; margin-bottom:10px;">📦 Doporučená obecná péče:</strong>`;
-                            plant.aiProducts.forEach(prod => {
-                                pHTML += `<div style="display:flex; gap:5px; margin-bottom:8px; align-items:center;">
-                    <span style="flex:1; font-size:0.9rem; font-weight:bold;">${prod}</span>
-                    <button class="btn-shop" onclick="window.open('https://www.heureka.cz/?h[fraze]=' + encodeURIComponent('${prod}'), '_blank')">🛒 Heureka</button>
-                    <button class="btn-shop" style="background:var(--p);" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${prod}'), '_blank')">📖 Návod</button>
-                </div>`;
-                            });
-                            pHTML += `<button class="btn-sm-action" style="color:var(--warn); border-color:var(--warn); margin-top:10px; width:100%;" onclick="deleteAIMemory('aiProducts')">🗑️ Smazat doporučení</button></div>`;
-                            prodBox.innerHTML = pHTML;
-                            prodBox.style.display = 'block';
-                        } else {
-                            prodBox.style.display = 'none';
-                        }
-
-                        // --- Historie ---
-                        const tl = document.getElementById('detail-timeline');
-                        tl.innerHTML = '';
-                        [...plant.careHistory].reverse().forEach((h, idx) => {
-                            let realIndex = plant.careHistory.length - 1 - idx;
-                            tl.innerHTML += `<div class="timeline-item" style="display:flex; justify-content:space-between; align-items:center;">
-                <div><strong>${h.date}:</strong> ${h.text}</div>
-                <button onclick="deleteHistoryItem(${realIndex})" style="background:none; border:none; color:var(--warn); cursor:pointer;">❌</button>
-            </div>`;
-                        });
-
-                        document.getElementById('detail-view').style.display = 'block';
-                    };
-                }
-                // --- 🎬 FUNKCE PRO VYHLEDÁVÁNÍ NA YOUTUBE ---
-                function searchYouTube(plantName) {
-                    const task = document.getElementById('yt-task-select').value;
-                    // Spojíme jméno kytky a vybraný úkol z roletky (např. "Fíkus jak přesadit")
-                    const query = encodeURIComponent(`${plantName} ${task}`);
-                    // Otevřeme novou záložku s výsledky na YouTube
-                    window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank');
-                }
                 // --- STÁLÉ TLAČÍTKO PRO OBECNOU PÉČI ---
                 const generalBtnHTML = `
-            <div style="text-align:center; margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
-                <button class="btn-sm-action" style="background:#f3e5f5; border-color:#9c27b0; color:#4a148c; font-weight:bold; width:100%; padding:10px;" onclick="callAI('products')">✨ Doporučit obecnou péči (hnojiva, substráty)</button>
-            </div>`;
+    <div style="text-align:center; margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">
+        <button class="btn-sm-action" style="background:#f3e5f5; border-color:#9c27b0; color:#4a148c; font-weight:bold; width:100%; padding:10px;" onclick="callAI('products')">✨ Doporučit obecnou péči (hnojiva, substráty)</button>
+    </div>`;
 
                 if (!hasVisibleTasks) {
                     tasksDiv.innerHTML = '<p style="font-size:0.9rem; color:#666; text-align:center;">Všechny úkoly jsou hotové! 🎉</p>' + generalBtnHTML;
@@ -1704,9 +1484,29 @@
                     tasksDiv.innerHTML += generalBtnHTML;
                 }
 
+                // --- 🎬 YOUTUBE VIDEONÁVODY ---
+                const ytHTML = `
+        <div style="margin-top:20px; padding:15px; background:#fff3e0; border:1px solid #ffcc80; border-radius:10px;">
+            <div style="font-weight:bold; color:#e65100; margin-bottom:10px; display:flex; align-items:center; gap:5px;">
+                🎬 Videonávody (YouTube)
+            </div>
+            <select id="yt-task-select" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ffb74d; margin-bottom:10px; outline:none;">
+                <option value="jak pěstovat">Obecné (Jak pěstovat)</option>
+                <option value="jak správně zalévat">Zálivka</option>
+                <option value="kdy a jak hnojit">Hnojení</option>
+                <option value="jak přesadit">Přesazování</option>
+                <option value="jak stříhat řez">Řez a tvarování</option>
+                <option value="jak množit řízkováním">Množení</option>
+                <option value="choroby a škůdci">Choroby a škůdci</option>
+                <option value="jak zazimovat">Zimování</option>
+            </select>
+            <button onclick="searchYouTube('${plant.name}')" style="width:100%; background:#ff0000; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                ▶️ Najít videa
+            </button>
+        </div>`;
+                tasksDiv.innerHTML += ytHTML;
 
-                // --- AI PAMĚŤ (Rozšířená o nový oddělený box pro produkty) ---
-                // 1. Detektiv
+                // --- AI PAMĚŤ ---
                 const detBox = document.getElementById('ai-mem-detective');
                 if (plant.aiDetection) {
                     const jeToInstrukce = plant.aiDetection.length > 35;
@@ -1718,7 +1518,6 @@
                     detBox.style.display = 'block';
                 } else { detBox.style.display = 'none'; }
 
-                // 2. Doktor
                 const docBox = document.getElementById('ai-mem-doctor');
                 if (plant.aiDiagnosis) {
                     let docContent = `<strong>🩺 Zdraví:</strong> ${plant.aiDiagnosis.description || plant.aiDiagnosis}`;
@@ -1730,17 +1529,16 @@
                     docBox.style.display = 'block';
                 } else { docBox.style.display = 'none'; }
 
-                // 3. OBECNÉ PŘÍPRAVKY (Nezávislý šuplík dole)
                 const prodBox = document.getElementById('ai-mem-products');
                 if (plant.aiProducts && plant.aiProducts.length > 0) {
                     let pHTML = `<div style="border: 2px solid #9c27b0; background: #fdf7ff; padding: 15px; border-radius: 12px; margin-top: 15px;">
-                <strong style="color:#4a148c; display:block; margin-bottom:10px;">📦 Doporučená obecná péče:</strong>`;
+        <strong style="color:#4a148c; display:block; margin-bottom:10px;">📦 Doporučená obecná péče:</strong>`;
                     plant.aiProducts.forEach(prod => {
                         pHTML += `<div style="display:flex; gap:5px; margin-bottom:8px; align-items:center;">
-                    <span style="flex:1; font-size:0.9rem; font-weight:bold;">${prod}</span>
-                    <button class="btn-shop" onclick="window.open('https://www.heureka.cz/?h[fraze]=' + encodeURIComponent('${prod}'), '_blank')">🛒 Heureka</button>
-                    <button class="btn-shop" style="background:var(--p);" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${prod}'), '_blank')">📖 Návod</button>
-                </div>`;
+            <span style="flex:1; font-size:0.9rem; font-weight:bold;">${prod}</span>
+            <button class="btn-shop" onclick="window.open('https://www.heureka.cz/?h[fraze]=' + encodeURIComponent('${prod}'), '_blank')">🛒 Heureka</button>
+            <button class="btn-shop" style="background:var(--p);" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${prod}'), '_blank')">📖 Návod</button>
+        </div>`;
                     });
                     pHTML += `<button class="btn-sm-action" style="color:var(--warn); border-color:var(--warn); margin-top:10px; width:100%;" onclick="deleteAIMemory('aiProducts')">🗑️ Smazat doporučení</button></div>`;
                     prodBox.innerHTML = pHTML;
@@ -1755,13 +1553,20 @@
                 [...plant.careHistory].reverse().forEach((h, idx) => {
                     let realIndex = plant.careHistory.length - 1 - idx;
                     tl.innerHTML += `<div class="timeline-item" style="display:flex; justify-content:space-between; align-items:center;">
-                <div><strong>${h.date}:</strong> ${h.text}</div>
-                <button onclick="deleteHistoryItem(${realIndex})" style="background:none; border:none; color:var(--warn); cursor:pointer;">❌</button>
-            </div>`;
+        <div><strong>${h.date}:</strong> ${h.text}</div>
+        <button onclick="deleteHistoryItem(${realIndex})" style="background:none; border:none; color:var(--warn); cursor:pointer;">❌</button>
+    </div>`;
                 });
 
                 document.getElementById('detail-view').style.display = 'block';
             };
+        }
+
+        // --- 🎬 FUNKCE PRO VYHLEDÁVÁNÍ NA YOUTUBE ---
+        function searchYouTube(plantName) {
+            const task = document.getElementById('yt-task-select').value;
+            const query = encodeURIComponent(`${plantName} ${task}`);
+            window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank');
         }
 
         // --- 📅 EXPORT DO SYSTÉMOVÉHO KALENDÁŘE ---

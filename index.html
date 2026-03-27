@@ -1684,6 +1684,14 @@
                         document.getElementById('detail-view').style.display = 'block';
                     };
                 }
+                // --- 🎬 FUNKCE PRO VYHLEDÁVÁNÍ NA YOUTUBE ---
+                function searchYouTube(plantName) {
+                    const task = document.getElementById('yt-task-select').value;
+                    // Spojíme jméno kytky a vybraný úkol z roletky (např. "Fíkus jak přesadit")
+                    const query = encodeURIComponent(`${plantName} ${task}`);
+                    // Otevřeme novou záložku s výsledky na YouTube
+                    window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank');
+                }
                 // --- STÁLÉ TLAČÍTKO PRO OBECNOU PÉČI ---
                 const generalBtnHTML = `
             <div style="text-align:center; margin-top:15px; padding-top:10px; border-top:1px dashed #ccc;">

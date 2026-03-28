@@ -666,6 +666,19 @@
             <div id="ai-mem-doctor" class="ai-mem-box" style="display:none; border-left: 4px solid var(--doc);"></div>
             <div id="ai-mem-products" class="ai-mem-box" style="display:none; border-left: 4px solid #673ab7;"></div>
 
+            <div id="medical-archive-section"
+                style="margin-top: 20px; margin-bottom: 25px; border: 2px solid #ffebee; border-radius: 12px; overflow: hidden; background: #fff;">
+                <button onclick="toggleMedicalArchive()"
+                    style="width: 100%; padding: 15px; background: #ffebee; border: none; text-align: left; font-size: 1.1rem; font-weight: bold; color: var(--warn, #d32f2f); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <span>🗂️ Lékařská karta (Historie diagnóz)</span>
+                    <span id="archive-chevron" style="transition: transform 0.3s;">▼</span>
+                </button>
+
+                <div id="medical-archive-content" style="display: none; padding: 15px; background: #fff;">
+                    <p style="text-align:center; color:#888; font-size: 0.95rem; margin: 10px 0;">Zatím žádné záznamy v
+                        historii.</p>
+                </div>
+            </div>
             <h3>📝 Historie péče</h3>
             <div class="timeline" id="detail-timeline"></div>
 
@@ -1520,6 +1533,7 @@
                 });
 
                 document.getElementById('detail-view').style.display = 'block';
+                if (typeof renderMedicalArchive === 'function') renderMedicalArchive();
             };
         }
 
@@ -1546,12 +1560,7 @@
             showLoader("AI analyzuje data...");
 
             const db = await getDB();
-            const plant = await new Promise((resolve, reject) => {
-                const tx = db.transaction('plants', 'readonly');
-                const req = tx.objectStore('plants').get(currentPlantId);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
+            const plant = await db.get('plants', currentPlantId);
 
             if (!plant) {
                 hideLoader();
@@ -1571,31 +1580,39 @@
                 let prompt = "";
                 let isJSON = false;
 
+                // --- 🩺 LOGIKA PRO DOKTORA & SROVNÁVAČ ---
                 if (type === 'doctor') {
-                    prompt = `Jsi expert na zdraví rostlin. Analyzuj tuto rostlinu '${plant.name}'. Odpověz VÝHRADNĚ ve formátu JSON s touto strukturou: {"hasProblem": true, "diagnosis": "název choroby nebo škůdce", "description": "stručný popis problému", "solution": "kroky k nápravě", "searchKeyword": "klíčové slovo pro vyhledávání (např. mšice)", "suggestedTask": "krátký název úkolu pro zahradníka"}. Pokud je rostlina zdravá, "hasProblem" bude false a ostatní pole budou prázdná nebo pozitivní.`;
+                    let evolutionContext = "";
+
+                    // Pokud uživatel spustil "Zkontrolovat vývoj", najdeme starý záznam
+                    if (window.comparingWithEntryId && plant.medicalHistory) {
+                        const oldEntry = plant.medicalHistory.find(e => e.id === window.comparingWithEntryId);
+                        if (oldEntry) {
+                            evolutionContext = ` MINULÁ DIAGNÓZA BYLA: "${oldEntry.diagnosis}". Porovnej aktuální fotky s tímto minulým stavem a v poli "description" uveď, zda se stav lepší, horší, nebo se objevilo něco nového.`;
+                        }
+                    }
+
+                    prompt = `Jsi expert na zdraví rostlin. Analyzuj tuto rostlinu '${plant.name}'. Odpověz VÝHRADNĚ ve formátu JSON s touto strukturou: {"hasProblem": true, "diagnosis": "název choroby nebo škůdce", "description": "stručný popis problému", "solution": "kroky k nápravě", "searchKeyword": "klíčové slovo pro vyhledávání", "suggestedTask": "název úkolu"}.${evolutionContext} Pokud je rostlina zdravá, "hasProblem" bude false.`;
                     isJSON = true;
                 }
+                // --- 🔎 OSTATNÍ TYPY ---
                 else if (type === 'detective') {
-                    prompt = `Prohlédni si VŠECHNY přiložené fotky této rostliny a pokus se určit její přesnou odrůdu. Pokud přiložené fotky k přesnému určení nestačí (např. chybí detail plodu, květů nebo listů), nenapíšeš název odrůdy, ale napíšeš jasnou krátkou instrukci, co má uživatel dofotit (např. "Pro určení odrůdy potřebuji detail zralého plodu a listu."). Odpověz POUZE ve formátu JSON: {"exactName": "Název odrůdy NEBO žádost o další fotky"}`;
+                    prompt = `Prohlédni si VŠECHNY přiložené fotky této rostliny a pokus se určit její přesnou odrůdu. Pokud fotky nestačí, napiš co dofotit. Odpověz POUZE ve formátu JSON: {"exactName": "Název odrůdy NEBO žádost o další fotky"}`;
                     isJSON = true;
                 }
                 else if (type === 'products') {
-                    // OBECNÉ PŘÍPRAVKY: Ptáme se na péči o celou rostlinu
-                    prompt = `Jsi zahradník. Doporuč 5 konkrétních obecných přípravků, hnojiv nebo substrátů dostupných na českém trhu pro rostlinu '${plant.name}'. Odpověz POUZE ve formátu JSON pole stringů: ["Produkt 1", "Produkt 2", "Produkt 3", "Produkt 4", "Produkt 5"]`;
+                    prompt = `Jsi zahradník. Doporuč 5 konkrétních produktů pro rostlinu '${plant.name}'. Odpověz POUZE ve formátu JSON pole stringů: ["Produkt 1", "Produkt 2", "Produkt 3", "Produkt 4", "Produkt 5"]`;
                     isJSON = true;
                 }
                 else if (type === 'task-products') {
-                    // SPECIFICKÉ PŘÍPRAVKY: Ptáme se čistě jen na vyřešení jednoho úkolu
-                    prompt = `Jsi zahradník. Doporuč 5 konkrétních přípravků na českém trhu přímo pro vyřešení úkolu '${extraParam}' u rostliny '${plant.name}'. Odpověz POUZE ve formátu JSON pole stringů: ["Produkt 1", "Produkt 2", "Produkt 3", "Produkt 4", "Produkt 5"]`;
+                    prompt = `Jsi zahradník. Doporuč 5 konkrétních produktů pro úkol '${extraParam}' u rostliny '${plant.name}'. Odpověz POUZE ve formátu JSON pole stringů.`;
                     isJSON = true;
                 }
 
                 const payload = { contents: [{ parts: [{ text: prompt }] }] };
-
                 if (type !== 'products') {
                     payload.contents[0].parts.push(...imageParts);
                 }
-
                 if (isJSON) {
                     payload.generationConfig = { response_mime_type: "application/json" };
                 }
@@ -1605,93 +1622,78 @@
                     body: JSON.stringify(payload)
                 });
 
-                // POJISTKA 1: Kontrola sítě
                 if (!resp.ok) {
                     if (resp.status === 429) throw new Error("API_LIMIT");
                     throw new Error(`HTTP_ERROR_${resp.status}`);
                 }
 
                 const data = await resp.json();
-
-                // POJISTKA 2: Vrátil Google vůbec nějaký text?
-                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-                    throw new Error("NO_DATA");
-                }
-
                 const aiResponse = data.candidates[0].content.parts[0].text;
-                let parsedData;
+                let parsedData = isJSON ? JSON.parse(extractJSON(aiResponse)) : aiResponse;
 
-                // POJISTKA 3: Bezpečné rozbalení JSONu
-                if (isJSON) {
-                    try {
-                        parsedData = JSON.parse(extractJSON(aiResponse));
-                    } catch (parseError) {
-                        console.error("Chyba při čtení JSON od AI:", aiResponse);
-                        throw new Error("JSON_ERROR");
-                    }
-                }
-
-                // --- TŘÍDĚNÍ DO ŠUPLÍKŮ ---
+                // --- 🗄️ TŘÍDĚNÍ DO ŠUPLÍKŮ & ARCHIVACE ---
                 if (type === 'doctor') {
                     plant.aiDiagnosis = parsedData;
 
+                    // ULOŽENÍ DO LÉKAŘSKÉ KARTY (ARCHIVU)
+                    if (!plant.medicalHistory) plant.medicalHistory = [];
+
+                    const newMedicalEntry = {
+                        id: Date.now(),
+                        date: new Date().toISOString(),
+                        diagnosis: parsedData.diagnosis + ": " + parsedData.description,
+                        photo: plant.images && plant.images.length > 0 ? plant.images[plant.images.length - 1] : null,
+                        userNote: ""
+                    };
+
+                    plant.medicalHistory.push(newMedicalEntry);
+
+                    // LOGIKA PRO ÚKOLY (původní)
                     if (parsedData.hasProblem) {
                         if (!plant.careHistory) plant.careHistory = [];
                         plant.careHistory.push({
                             date: new Date().toLocaleDateString('cs-CZ'),
-                            text: `⚠️ AI Diagnóza: Byl zjištěn problém - ${parsedData.searchKeyword || parsedData.diagnosis}`
+                            text: `⚠️ AI Diagnóza: ${parsedData.diagnosis}`
                         });
 
-                        const currentMonth = new Date().getMonth();
                         if (!plant.tasks) plant.tasks = [];
-
-                        if (Array.isArray(plant.tasks)) {
-                            plant.tasks.push({
-                                name: parsedData.suggestedTask || "Léčba rostliny",
-                                description: parsedData.solution || "Postupujte dle doporučení.",
-                                months: [currentMonth]
-                            });
-                        }
+                        plant.tasks.push({
+                            name: parsedData.suggestedTask || "Léčba",
+                            description: parsedData.solution,
+                            months: [new Date().getMonth()]
+                        });
                     }
+
+                    // Vyčištění srovnávacího ID po dokončení
+                    window.comparingWithEntryId = null;
                 }
                 else if (type === 'detective') {
                     plant.aiDetection = parsedData.exactName;
                 }
                 else if (type === 'products') {
-                    // ŠUPLÍK A: Ukládáme jako OBECNOU výbavu k rostlině
                     plant.aiProducts = parsedData;
                 }
                 else if (type === 'task-products') {
-                    // ŠUPLÍK B: Hledáme úkol a ukládáme přípravky jen do něj
-                    if (plant.tasks && Array.isArray(plant.tasks)) {
-                        const taskIndex = plant.tasks.findIndex(t => t.name === extraParam);
-                        if (taskIndex > -1) {
-                            plant.tasks[taskIndex].taskProducts = parsedData;
-                        }
+                    if (plant.tasks) {
+                        const tIdx = plant.tasks.findIndex(t => t.name === extraParam);
+                        if (tIdx > -1) plant.tasks[tIdx].taskProducts = parsedData;
                     }
                 }
 
-                const saveTx = db.transaction('plants', 'readwrite');
-                const saveStore = saveTx.objectStore('plants');
-                saveStore.put(plant);
+                await db.put('plants', plant);
+                hideLoader();
+                renderPlants();
+                openDetail(currentPlantId);
 
-                saveTx.oncomplete = () => {
-                    hideLoader();
-                    renderPlants();
-                    openDetail(currentPlantId);
-                };
+                // Pokud je otevřená Lékařská karta, hned ji překreslíme
+                if (typeof renderMedicalArchive === 'function') {
+                    renderMedicalArchive();
+                }
+
             } catch (e) {
                 hideLoader();
-                console.error("Detail chyby callAI:", e);
-                if (e.message === "API_LIMIT") {
-                    alert("Zpomalte prosím. 🚦 Překročili jsme chvilkový limit dotazů na AI.");
-                } else if (e.message === "NO_DATA") {
-                    alert("Umělá inteligence nevrátila žádnou odpověď. Zkuste to prosím znovu.");
-                } else if (e.message === "JSON_ERROR") {
-                    alert("Odpověď od AI byla ve špatném formátu. Zkuste to prosím znovu.");
-                } else {
-                    alert("Chyba AI analýzy: Zkontrolujte API klíč nebo připojení.");
-                }
+                console.error("Chyba AI:", e);
+                alert("Chyba AI analýzy. Zkontrolujte připojení nebo API klíč.");
             }
         }
 
@@ -2662,6 +2664,89 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                     contentDiv.innerHTML = finalHTML;
                 }
             };
+        }
+        // ==========================================
+        // 🗂️ LOGIKA LÉKAŘSKÉ KARTY (ARCHIV)
+        // ==========================================
+
+        // 1. Přepínání roletky (Otevřít/Zavřít)
+        function toggleMedicalArchive() {
+            const content = document.getElementById('medical-archive-content');
+            const chevron = document.getElementById('archive-chevron');
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+                renderMedicalArchive(); // Při otevření hned načteme data
+            } else {
+                content.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // 2. Vykreslení obsahu archivu
+        async function renderMedicalArchive() {
+            if (!currentPlantId) return;
+            const db = await getDB();
+            const plant = await db.get('plants', currentPlantId);
+            const container = document.getElementById('medical-archive-content');
+
+            // Pokud rostlina nemá žádnou historii diagnóz
+            if (!plant.medicalHistory || plant.medicalHistory.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; font-size: 0.95rem; margin: 10px 0;">Zatím žádné záznamy v historii.</p>';
+                return;
+            }
+
+            // Seřadíme historii od nejnovější po nejstarší
+            const sortedHistory = [...plant.medicalHistory].reverse();
+
+            container.innerHTML = sortedHistory.map((entry, index) => `
+        <div style="border-bottom: 1px solid #eee; padding: 15px 0; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="color: #555;">📅 ${new Date(entry.date).toLocaleDateString('cs-CZ')}</strong>
+                <button onclick="startEvolutionCheck(${entry.id})" style="background: var(--doc); color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer;">🤖 Zkontrolovat vývoj</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                ${entry.photo ? `<img src="${entry.photo}" style="width: 70px; height: 70px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd;">` : ''}
+                <div style="font-size: 0.9rem; line-height: 1.4; color: #333;">
+                    ${entry.diagnosis}
+                </div>
+            </div>
+
+            <div style="background: #fdf5e6; padding: 10px; border-radius: 8px; border: 1px dashed #d7ccc8;">
+                <label style="display: block; font-size: 0.75rem; color: #8d6e63; font-weight: bold; margin-bottom: 5px;">MOJE POZNÁMKA K LÉČBĚ:</label>
+                <textarea 
+                    id="med-note-${entry.id}" 
+                    style="width: 100%; border: none; background: transparent; font-family: sans-serif; font-size: 0.85rem; resize: none; outline: none;" 
+                    placeholder="Např. 'Dnes postříkáno...'"
+                    onchange="saveMedicalNote(${entry.id}, this.value)">${entry.userNote || ''}</textarea>
+            </div>
+        </div>
+    `).join('');
+        }
+
+        // 3. Ukládání poznámek uživatele
+        async function saveMedicalNote(entryId, noteValue) {
+            const db = await getDB();
+            const plant = await db.get('plants', currentPlantId);
+
+            if (plant.medicalHistory) {
+                const entry = plant.medicalHistory.find(e => e.id === entryId);
+                if (entry) {
+                    entry.userNote = noteValue;
+                    await db.put('plants', plant);
+                    console.log("Poznámka uložena do archivu");
+                }
+            }
+        }
+
+        // 4. Příprava na AI porovnání (Zatím jen otevře foťák - Fáze 3 bude následovat)
+        function startEvolutionCheck(oldEntryId) {
+            // Uložíme si ID starého záznamu, abychom věděli, s čím srovnávat
+            window.comparingWithEntryId = oldEntryId;
+            alert("Nyní vyfoťte aktuální stav. AI porovná novou fotku s tou z archivu.");
+            document.getElementById('camera-input').click();
         }
     </script>
 </body>

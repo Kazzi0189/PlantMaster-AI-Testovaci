@@ -1567,7 +1567,14 @@
             showLoader("AI analyzuje data...");
 
             const db = await getDB();
-            const plant = await db.get('plants', currentPlantId);
+
+            // 🟢 OPRAVA: Vráceno tvé správné, nativní načítání z databáze
+            const plant = await new Promise((resolve, reject) => {
+                const tx = db.transaction('plants', 'readonly');
+                const req = tx.objectStore('plants').get(currentPlantId);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
 
             if (!plant) {
                 hideLoader();
@@ -1613,14 +1620,12 @@
 
                 const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
-                // 🟢 ÚPRAVA: POSÍLÁME TAJNOU FOTKU GOOGLU
+                // POSÍLÁME TAJNOU FOTKU GOOGLU
                 if (type === 'doctor' && window.secretDoctorPhoto) {
-                    // Doktor si bere POUZE tu tajnou vyfocenou fotku
                     payload.contents[0].parts.push({
                         inline_data: { mime_type: "image/jpeg", data: window.secretDoctorPhoto.split(',')[1] }
                     });
                 } else if (type !== 'products') {
-                    // Ostatní AI funkce (detektiv) dostanou klasickou galerii kytky
                     payload.contents[0].parts.push(...imageParts);
                 }
 
@@ -1652,7 +1657,6 @@
                         id: Date.now(),
                         date: new Date().toISOString(),
                         diagnosis: parsedData.diagnosis + ": " + parsedData.description,
-                        // 🟢 ÚPRAVA: KARTA SI VEZME TAJNOU FOTKU (Do hlavní galerie se nedostane)
                         photo: window.secretDoctorPhoto || ((plant.images && plant.images.length > 0) ? plant.images[plant.images.length - 1] : null),
                         userNote: ""
                     };
@@ -1674,7 +1678,6 @@
                         });
                     }
 
-                    // 🟢 DŮLEŽITÉ: Vyčištění paměti
                     window.comparingWithEntryId = null;
                     window.secretDoctorPhoto = null;
                 }
@@ -1691,19 +1694,29 @@
                     }
                 }
 
-                await db.put('plants', plant);
-                hideLoader();
-                renderPlants();
-                openDetail(currentPlantId);
+                // 🟢 OPRAVA: Vráceno tvé správné, nativní ukládání do databáze
+                const saveTx = db.transaction('plants', 'readwrite');
+                const saveStore = saveTx.objectStore('plants');
+                saveStore.put(plant);
 
-                if (typeof renderMedicalArchive === 'function') {
-                    renderMedicalArchive();
-                }
+                saveTx.oncomplete = () => {
+                    hideLoader();
+                    renderPlants();
+                    openDetail(currentPlantId);
+
+                    if (typeof renderMedicalArchive === 'function') {
+                        renderMedicalArchive();
+                    }
+                };
 
             } catch (e) {
                 hideLoader();
                 console.error("Chyba AI:", e);
-                alert("Chyba AI analýzy. Zkontrolujte připojení nebo API klíč.");
+                if (e.message === "API_LIMIT") {
+                    alert("Zpomalte prosím. 🚦 Překročili jsme chvilkový limit dotazů na AI.");
+                } else {
+                    alert("Chyba AI analýzy. Zkontrolujte připojení nebo API klíč.");
+                }
             }
         }
 
@@ -2738,11 +2751,19 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
             }
         }
 
-        // 2. Vykreslení obsahu archivu
+        // 2. Vykreslení obsahu archivu (OPRAVENÁ DATABÁZE)
         async function renderMedicalArchive() {
             if (!currentPlantId) return;
             const db = await getDB();
-            const plant = await db.get('plants', currentPlantId);
+
+            // Správné, nativní načtení z databáze
+            const plant = await new Promise((resolve, reject) => {
+                const tx = db.transaction('plants', 'readonly');
+                const req = tx.objectStore('plants').get(currentPlantId);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+
             const container = document.getElementById('medical-archive-content');
 
             // Pokud rostlina nemá žádnou historii diagnóz
@@ -2780,17 +2801,29 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
     `).join('');
         }
 
-        // 3. Ukládání poznámek uživatele
+        // 3. Ukládání poznámek uživatele (OPRAVENÁ DATABÁZE)
         async function saveMedicalNote(entryId, noteValue) {
             const db = await getDB();
-            const plant = await db.get('plants', currentPlantId);
 
-            if (plant.medicalHistory) {
+            // Správné, nativní načtení z databáze
+            const plant = await new Promise((resolve, reject) => {
+                const tx = db.transaction('plants', 'readonly');
+                const req = tx.objectStore('plants').get(currentPlantId);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+
+            if (plant && plant.medicalHistory) {
                 const entry = plant.medicalHistory.find(e => e.id === entryId);
                 if (entry) {
                     entry.userNote = noteValue;
-                    await db.put('plants', plant);
-                    console.log("Poznámka uložena do archivu");
+
+                    // Správné, nativní uložení do databáze
+                    const saveTx = db.transaction('plants', 'readwrite');
+                    saveTx.objectStore('plants').put(plant);
+                    saveTx.oncomplete = () => {
+                        console.log("Poznámka uložena do archivu");
+                    };
                 }
             }
         }

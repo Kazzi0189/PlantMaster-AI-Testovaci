@@ -549,7 +549,14 @@
         <span class="version-tag">Verze 22.0 (Stabilní a Kompletní)</span>
         <div class="header-btns">
             <button class="btn-header" onclick="openGuide()" title="Návod k aplikaci"
-                style="padding: 15px; margin: -10px 5px -10px -10px;">❓</button>
+                style="padding: 15px; margin: -10px 5px -10px -10px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: white;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </button>
 
             <button class="btn-header" onclick="openSettings()" title="Nastavení"
                 style="padding: 15px; margin: -10px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: white;">
@@ -761,6 +768,41 @@
                 EXISTUJÍCÍM</button>
             <button class="btn-full btn-secondary"
                 onclick="document.getElementById('import-modal').style.display='none'">Zrušit</button>
+        </div>
+    </div>
+    <div id="backup-ready-modal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:4000; justify-content:center; align-items:center;">
+        <div
+            style="background:white; padding:25px; border-radius:16px; width:85%; max-width:400px; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div style="font-size: 3rem; margin-bottom: 10px;">📦</div>
+            <h3 style="color:var(--p); margin-top:0;">Záloha je připravena!</h3>
+            <p style="font-size:0.9rem; color:#555; margin-bottom:20px;">Vyberte, co chcete se souborem udělat.</p>
+
+            <button class="btn-full" style="background:#1976d2; font-size: 1.1rem; padding: 15px;"
+                onclick="shareBackup()">📤 Sdílet (WhatsApp, Disk...)</button>
+            <button class="btn-full" style="background:#4caf50; font-size: 1.1rem; padding: 15px;"
+                onclick="saveBackup()">⬇️ Uložit do zařízení</button>
+
+            <button class="btn-full btn-secondary" style="margin-top: 15px;"
+                onclick="document.getElementById('backup-ready-modal').style.display='none'">Zavřít</button>
+        </div>
+    </div>
+
+    <div id="backup-ready-modal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:4000; justify-content:center; align-items:center;">
+        <div
+            style="background:white; padding:25px; border-radius:16px; width:85%; max-width:400px; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div style="font-size: 3rem; margin-bottom: 10px;">📦</div>
+            <h3 style="color:var(--p); margin-top:0;">Záloha je připravena!</h3>
+            <p style="font-size:0.9rem; color:#555; margin-bottom:20px;">Vyberte, co chcete se souborem udělat.</p>
+
+            <button class="btn-full" style="background:#1976d2; font-size: 1.1rem; padding: 15px;"
+                onclick="shareBackup()">📤 Sdílet (WhatsApp, Disk...)</button>
+            <button class="btn-full" style="background:#4caf50; font-size: 1.1rem; padding: 15px;"
+                onclick="saveBackup()">⬇️ Uložit do zařízení</button>
+
+            <button class="btn-full btn-secondary" style="margin-top: 15px;"
+                onclick="document.getElementById('backup-ready-modal').style.display='none'">Zavřít</button>
         </div>
     </div>
 
@@ -1937,7 +1979,10 @@
             tx.oncomplete = () => { closeDetail(); renderPlants(); };
         }
 
-        // --- 11. ZÁLOHOVÁNÍ DO .ZIP (Export & Share) ---
+        // Globální proměnné pro uložení připraveného souboru
+        let preparedBackupBlob = null;
+        let preparedBackupFileName = "";
+
         async function exportZip() {
             showLoader('Připravuji pokročilou zálohu...');
             const zip = new JSZip();
@@ -1948,22 +1993,20 @@
             req.onsuccess = async () => {
                 const plants = req.result;
 
-                // 1. ZÁLOHA DAT (Nesmíme měnit strukturu, aby ti fungoval Import!)
+                // 1. ZÁLOHA DAT
                 zip.file('databaze.json', JSON.stringify(plants));
                 zip.file('nastaveni.json', JSON.stringify({ key: localStorage.getItem('G_KEY') || "" }));
 
-                // 2. EXTRAKCE FOTEK DO SLOŽEK (Pro tvé pohodlné prohlížení v PC/Mobilu)
+                // 2. EXTRAKCE FOTEK DO SLOŽEK
                 let plantListTxt = "=== PŘEHLED ZAHRADY PLANTMASTER ===\n\n";
 
                 plants.forEach(plant => {
-                    // Odstraníme z názvu nepovolené znaky pro pojmenování složky
                     const safeName = (plant.name || "Neznama_rostlina").replace(/[^a-zA-Z0-9áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g, "_");
                     const plantFolder = zip.folder(safeName);
 
                     plantListTxt += `🌱 ${plant.name}\n`;
                     plantListTxt += `   - Zálivka: ${plant.water || "Nezadáno"}\n`;
 
-                    // Uložení fotek z hlavní galerie
                     if (plant.images && plant.images.length > 0) {
                         plant.images.forEach((imgBase64, index) => {
                             const base64Data = imgBase64.split(',')[1];
@@ -1971,7 +2014,6 @@
                         });
                     }
 
-                    // Uložení fotek ze zdravotní karty (Archivu)
                     if (plant.medicalHistory && plant.medicalHistory.length > 0) {
                         plantListTxt += `   - Zdravotních záznamů: ${plant.medicalHistory.length}\n`;
                         plant.medicalHistory.forEach((entry, index) => {
@@ -1985,42 +2027,59 @@
                     plantListTxt += "\n";
                 });
 
-                // Vytvoříme přehledný textový soubor
                 zip.file('Prehled_zahrady.txt', plantListTxt);
 
-                // 3. ZABALENÍ A SDÍLENÍ
+                // 3. ZABALENÍ A ZOBRAZENÍ NABÍDKY
                 zip.generateAsync({ type: "blob" }).then(async (blob) => {
                     const dnes = new Date();
                     const den = String(dnes.getDate()).padStart(2, '0');
                     const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
                     const rok = dnes.getFullYear();
-                    const fileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
 
-                    // POKUS O MODERNÍ SDÍLENÍ (WhatsApp, Uložit do telefonu...)
-                    if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
-                        try {
-                            const fileToShare = new File([blob], fileName, { type: blob.type });
-                            hideLoader(); // Schováme kolečko před zobrazením nabídky
-                            await navigator.share({
-                                files: [fileToShare],
-                                title: 'Záloha PlantMaster',
-                                text: 'Zde je kompletní záloha mých rostlin z aplikace PlantMaster.'
-                            });
-                            console.log('Úspěšně sdíleno/uloženo');
-                        } catch (err) {
-                            console.log('Akce zrušena uživatelem nebo selhala, stahuji klasicky.', err);
-                            forceDownload(blob, fileName);
-                        }
-                    } else {
-                        // FALLBACK: Pokud prohlížeč sdílení neumí, klasicky soubor stáhneme
-                        console.log('Web Share API není podporováno, stahuji klasicky.');
-                        forceDownload(blob, fileName);
-                    }
+                    // Uložíme si hotový soubor bokem
+                    preparedBackupBlob = blob;
+                    preparedBackupFileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
+
+                    hideLoader();
+
+                    // Místo pokusu o sdílení ukážeme naše nové hezké menu
+                    document.getElementById('backup-ready-modal').style.display = 'flex';
                 });
             };
         }
 
-        // Pomocná funkce pro klasické stažení (když selže sdílení nebo ho prohlížeč neumí)
+        // Nová funkce pro přímé sdílení hotového souboru
+        async function shareBackup() {
+            if (!preparedBackupBlob) return;
+
+            const fileToShare = new File([preparedBackupBlob], preparedBackupFileName, { type: preparedBackupBlob.type });
+
+            if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
+                try {
+                    await navigator.share({
+                        files: [fileToShare],
+                        title: 'Záloha PlantMaster',
+                        text: 'Zde je kompletní záloha mých rostlin z aplikace PlantMaster.'
+                    });
+                    console.log('Úspěšně sdíleno');
+                    // Schováme okno po úspěšném sdílení
+                    document.getElementById('backup-ready-modal').style.display = 'none';
+                } catch (err) {
+                    console.log('Sdílení zrušeno nebo selhalo', err);
+                }
+            } else {
+                alert("Váš prohlížeč na tomto zařízení bohužel nepodporuje přímé sdílení souborů. Použijte prosím zelené tlačítko 'Uložit do zařízení'.");
+            }
+        }
+
+        // Nová funkce pro klasické uložení do mobilu/PC
+        function saveBackup() {
+            if (!preparedBackupBlob) return;
+            forceDownload(preparedBackupBlob, preparedBackupFileName);
+            document.getElementById('backup-ready-modal').style.display = 'none';
+        }
+
+        // Pomocná funkce pro klasické stažení
         function forceDownload(blob, fileName) {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -2028,8 +2087,8 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            hideLoader();
         }
+        // Zde je definitivně uzavřená celá funkce zálohování
         // Zde je definitivně uzavřená celá funkce exportZip
         async function handleImport(event) {
             const file = event.target.files[0];

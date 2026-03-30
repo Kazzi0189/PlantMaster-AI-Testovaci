@@ -2057,36 +2057,124 @@
         }
 
         // --- 11. ZÁLOHOVÁNÍ DO .ZIP (Export & Import) ---
+        // --- 11. ZÁLOHOVÁNÍ DO .ZIP (Export & Share) ---
+
+        // Globální proměnné pro uložení připraveného souboru
+        let preparedBackupBlob = null;
+        let preparedBackupFileName = "";
+
         async function exportZip() {
+            // 1. Okamžitě zavřeme okno nastavení, ať nám nepřekáží
             closeSettings();
-            showLoader('Připravuji zálohu...');
+
+            // 2. Zobrazíme informaci o načítání
+            showLoader('Připravuji pokročilou zálohu...');
+
             const zip = new JSZip();
             const db = await getDB();
             const tx = db.transaction('plants', 'readonly');
             const req = tx.objectStore('plants').getAll();
 
-            req.onsuccess = () => {
-                zip.file('databaze.json', JSON.stringify(req.result));
+            req.onsuccess = async () => {
+                const plants = req.result;
+
+                // ZÁLOHA DAT
+                zip.file('databaze.json', JSON.stringify(plants));
                 zip.file('nastaveni.json', JSON.stringify({ key: localStorage.getItem('G_KEY') || "" }));
 
-                zip.generateAsync({ type: "blob" }).then(blob => {
-                    // --- NOVÁ ČÁST: Zjištění a formátování data ---
+                // EXTRAKCE FOTEK A TEXTŮ
+                let plantListTxt = "=== PŘEHLED ZAHRADY PLANTMASTER ===\n\n";
+
+                plants.forEach(plant => {
+                    const safeName = (plant.name || "Neznama_rostlina").replace(/[^a-zA-Z0-9áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g, "_");
+                    const plantFolder = zip.folder(safeName);
+
+                    plantListTxt += `🌱 ${plant.name}\n`;
+                    plantListTxt += `   - Zálivka: ${plant.water || "Nezadáno"}\n`;
+
+                    if (plant.images && plant.images.length > 0) {
+                        plant.images.forEach((imgBase64, index) => {
+                            const base64Data = imgBase64.split(',')[1];
+                            if (base64Data) plantFolder.file(`galerie_${index + 1}.jpg`, base64Data, { base64: true });
+                        });
+                    }
+
+                    if (plant.medicalHistory && plant.medicalHistory.length > 0) {
+                        plantListTxt += `   - Zdravotních záznamů: ${plant.medicalHistory.length}\n`;
+                        plant.medicalHistory.forEach((entry, index) => {
+                            if (entry.photo) {
+                                const base64Data = entry.photo.split(',')[1];
+                                const dateStr = new Date(entry.date).toLocaleDateString('cs-CZ').replace(/\./g, '-').replace(/ /g, '');
+                                if (base64Data) plantFolder.file(`diagnoza_${dateStr}_${index + 1}.jpg`, base64Data, { base64: true });
+                            }
+                        });
+                    }
+                    plantListTxt += "\n";
+                });
+
+                zip.file('Prehled_zahrady.txt', plantListTxt);
+
+                // ZABALENÍ DO ZIPU
+                zip.generateAsync({ type: "blob" }).then(async (blob) => {
                     const dnes = new Date();
                     const den = String(dnes.getDate()).padStart(2, '0');
                     const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
                     const rok = dnes.getFullYear();
-                    const datumText = `${den}-${mesic}-${rok}`;
-                    // ----------------------------------------------
 
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    // Změněný řádek: Dynamický název souboru s aktuálním datem
-                    a.download = `PlantMaster_Zaloha_${datumText}.zip`;
-                    a.click();
+                    // Uložíme si hotový soubor do paměti
+                    preparedBackupBlob = blob;
+                    preparedBackupFileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
+
                     hideLoader();
-                }); // Zde je správně ukončená metoda .then()
-            }; // Zde je správně ukončený blok req.onsuccess
-        } // Zde je definitivně uzavřená celá funkce exportZip
+
+                    // ZOBRAZÍME NOVÉ OKNO PRO VÝBĚR AKCE
+                    // Pojistka: nastavíme extrémně vysoký z-index přímo z JavaScriptu
+                    const backupModal = document.getElementById('backup-ready-modal');
+                    if (backupModal) {
+                        backupModal.style.zIndex = '10000';
+                        backupModal.style.display = 'flex';
+                    } else {
+                        // Pokud okno v HTML chybí, použijeme záchranné stažení
+                        saveBackup();
+                    }
+                });
+            };
+        }
+
+        async function shareBackup() {
+            if (!preparedBackupBlob) return;
+            const fileToShare = new File([preparedBackupBlob], preparedBackupFileName, { type: preparedBackupBlob.type });
+
+            if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
+                try {
+                    await navigator.share({
+                        files: [fileToShare],
+                        title: 'Záloha PlantMaster',
+                        text: 'Zde je kompletní záloha mých rostlin z aplikace PlantMaster.'
+                    });
+                    document.getElementById('backup-ready-modal').style.display = 'none';
+                } catch (err) {
+                    console.log('Sdílení zrušeno nebo selhalo', err);
+                }
+            } else {
+                alert("Váš prohlížeč na tomto zařízení bohužel nepodporuje přímé sdílení souborů. Použijte prosím zelené tlačítko 'Uložit do zařízení'.");
+            }
+        }
+
+        function saveBackup() {
+            if (!preparedBackupBlob) return;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(preparedBackupBlob);
+            a.download = preparedBackupFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            const modal = document.getElementById('backup-ready-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // --- KONEC 11. ZÁLOHOVÁNÍ DO .ZIP --- // Zde je definitivně uzavřená celá funkce exportZip
         async function handleImport(event) {
             const file = event.target.files[0];
             if (!file) return;

@@ -729,23 +729,6 @@
         </div>
     </div>
 
-    <div id="backup-ready-modal"
-        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center;">
-        <div
-            style="background:white; padding:25px; border-radius:16px; width:85%; max-width:400px; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-            <div style="font-size: 3rem; margin-bottom: 10px;">📦</div>
-            <h3 style="color:var(--p); margin-top:0;">Záloha je připravena!</h3>
-            <p style="font-size:0.9rem; color:#555; margin-bottom:20px;">Vyberte, co chcete se souborem udělat.</p>
-
-            <button class="btn-full" style="background:#1976d2; font-size: 1.1rem; padding: 15px;"
-                onclick="shareBackup()">📤 Sdílet (WhatsApp, Disk...)</button>
-            <button class="btn-full" style="background:#4caf50; font-size: 1.1rem; padding: 15px;"
-                onclick="saveBackup()">⬇️ Uložit do zařízení</button>
-
-            <button class="btn-full btn-secondary" style="margin-top: 15px;"
-                onclick="document.getElementById('backup-ready-modal').style.display='none'">Zavřít</button>
-        </div>
-    </div>
 
     <div id="loader">
         <div class="spinner"></div><span id="loader-text">Zpracovávám...</span>
@@ -2076,16 +2059,10 @@
 
         // --- 11. ZÁLOHOVÁNÍ DO .ZIP (Export & Share) ---
 
-        // Globální proměnné pro uložení připraveného souboru
-        let preparedBackupBlob = null;
-        let preparedBackupFileName = "";
-
         async function exportZip() {
-            // 1. Okamžitě zavřeme okno nastavení, ať nám nepřekáží
+            // 1. Zavřeme okno nastavení a ukážeme načítání
             closeSettings();
-
-            // 2. Zobrazíme informaci o načítání
-            showLoader('Připravuji pokročilou zálohu...');
+            showLoader('Připravuji zálohu...');
 
             const zip = new JSZip();
             const db = await getDB();
@@ -2131,31 +2108,32 @@
 
                 zip.file('Prehled_zahrady.txt', plantListTxt);
 
-                // ZABALENÍ DO ZIPU
-                zip.generateAsync({ type: "blob" }).then(async (blob) => {
+                // ZABALENÍ A PŘÍMÉ STAŽENÍ S DATUMEM
+                zip.generateAsync({ type: "blob" }).then(function (blob) {
                     const dnes = new Date();
                     const den = String(dnes.getDate()).padStart(2, '0');
                     const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
                     const rok = dnes.getFullYear();
 
-                    // Uložíme data pro pozdější použití v oknech
-                    preparedBackupBlob = blob;
-                    preparedBackupFileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
+                    // Zde je tvůj požadovaný datumový vzor
+                    const fileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
 
                     hideLoader();
-
-                    // AKTIVACE OKNA (místo stahování)
-                    const backupModal = document.getElementById('backup-ready-modal');
-                    if (backupModal) {
-                        backupModal.style.zIndex = '10000';
-                        backupModal.style.display = 'flex';
-                    } else {
-                        // Záchranná brzda - pokud by okno v HTML chybělo
-                        saveBackup();
-                    }
+                    forceDownload(blob, fileName);
                 });
             };
         }
+
+        // Pomocná funkce pro klasické stažení
+        function forceDownload(blob, fileName) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        // --- KONEC 11. ZÁLOHOVÁNÍ DO .ZIP --- 
 
         async function shareBackup() {
             if (!preparedBackupBlob) return;

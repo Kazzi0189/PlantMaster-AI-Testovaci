@@ -770,7 +770,7 @@
                 onclick="document.getElementById('import-modal').style.display='none'">Zrušit</button>
         </div>
     </div>
-    
+
     <div id="global-planner-modal"
         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1500; justify-content:center; align-items:center;">
         <div
@@ -1976,105 +1976,22 @@
             tx.oncomplete = () => { closeDetail(); renderPlants(); };
         }
 
-        // Globální proměnné pro uložení připraveného souboru
-        let preparedBackupBlob = null;
-        let preparedBackupFileName = "";
+        // 3. ZABALENÍ A PŘÍMÉ STAŽENÍ
+        zip.generateAsync({ type: "blob" }).then(async (blob) => {
+            const dnes = new Date();
+            const den = String(dnes.getDate()).padStart(2, '0');
+            const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
+            const rok = dnes.getFullYear();
 
-        async function exportZip() {
-            showLoader('Připravuji pokročilou zálohu...');
-            const zip = new JSZip();
-            const db = await getDB();
-            const tx = db.transaction('plants', 'readonly');
-            const req = tx.objectStore('plants').getAll();
+            const fileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
 
-            req.onsuccess = async () => {
-                const plants = req.result;
+            hideLoader(); // Schová načítací kolečko
+            forceDownload(blob, fileName); // Předá soubor prohlížeči ke stažení
 
-                // 1. ZÁLOHA DAT
-                zip.file('databaze.json', JSON.stringify(plants));
-                zip.file('nastaveni.json', JSON.stringify({ key: localStorage.getItem('G_KEY') || "" }));
+            // Upozornění, aby sis stahování všimnul, i když se prohlížeč nezeptá
+            setTimeout(() => alert("Záloha byla úspěšně připravena a stahuje se do vašeho zařízení!"), 500);
+        });
 
-                // 2. EXTRAKCE FOTEK DO SLOŽEK
-                let plantListTxt = "=== PŘEHLED ZAHRADY PLANTMASTER ===\n\n";
-
-                plants.forEach(plant => {
-                    const safeName = (plant.name || "Neznama_rostlina").replace(/[^a-zA-Z0-9áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g, "_");
-                    const plantFolder = zip.folder(safeName);
-
-                    plantListTxt += `🌱 ${plant.name}\n`;
-                    plantListTxt += `   - Zálivka: ${plant.water || "Nezadáno"}\n`;
-
-                    if (plant.images && plant.images.length > 0) {
-                        plant.images.forEach((imgBase64, index) => {
-                            const base64Data = imgBase64.split(',')[1];
-                            if (base64Data) plantFolder.file(`galerie_${index + 1}.jpg`, base64Data, { base64: true });
-                        });
-                    }
-
-                    if (plant.medicalHistory && plant.medicalHistory.length > 0) {
-                        plantListTxt += `   - Zdravotních záznamů: ${plant.medicalHistory.length}\n`;
-                        plant.medicalHistory.forEach((entry, index) => {
-                            if (entry.photo) {
-                                const base64Data = entry.photo.split(',')[1];
-                                const dateStr = new Date(entry.date).toLocaleDateString('cs-CZ').replace(/\./g, '-').replace(/ /g, '');
-                                if (base64Data) plantFolder.file(`diagnoza_${dateStr}_${index + 1}.jpg`, base64Data, { base64: true });
-                            }
-                        });
-                    }
-                    plantListTxt += "\n";
-                });
-
-                zip.file('Prehled_zahrady.txt', plantListTxt);
-
-                // 3. ZABALENÍ A ZOBRAZENÍ NABÍDKY
-                zip.generateAsync({ type: "blob" }).then(async (blob) => {
-                    const dnes = new Date();
-                    const den = String(dnes.getDate()).padStart(2, '0');
-                    const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
-                    const rok = dnes.getFullYear();
-
-                    // Uložíme si hotový soubor bokem
-                    preparedBackupBlob = blob;
-                    preparedBackupFileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
-
-                    hideLoader();
-
-                    // Místo pokusu o sdílení ukážeme naše nové hezké menu
-                    document.getElementById('backup-ready-modal').style.display = 'flex';
-                });
-            };
-        }
-
-        // Nová funkce pro přímé sdílení hotového souboru
-        async function shareBackup() {
-            if (!preparedBackupBlob) return;
-
-            const fileToShare = new File([preparedBackupBlob], preparedBackupFileName, { type: preparedBackupBlob.type });
-
-            if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
-                try {
-                    await navigator.share({
-                        files: [fileToShare],
-                        title: 'Záloha PlantMaster',
-                        text: 'Zde je kompletní záloha mých rostlin z aplikace PlantMaster.'
-                    });
-                    console.log('Úspěšně sdíleno');
-                    // Schováme okno po úspěšném sdílení
-                    document.getElementById('backup-ready-modal').style.display = 'none';
-                } catch (err) {
-                    console.log('Sdílení zrušeno nebo selhalo', err);
-                }
-            } else {
-                alert("Váš prohlížeč na tomto zařízení bohužel nepodporuje přímé sdílení souborů. Použijte prosím zelené tlačítko 'Uložit do zařízení'.");
-            }
-        }
-
-        // Nová funkce pro klasické uložení do mobilu/PC
-        function saveBackup() {
-            if (!preparedBackupBlob) return;
-            forceDownload(preparedBackupBlob, preparedBackupFileName);
-            document.getElementById('backup-ready-modal').style.display = 'none';
-        }
 
         // Pomocná funkce pro klasické stažení
         function forceDownload(blob, fileName) {
@@ -2162,7 +2079,8 @@
 
                 // 2. POŽADAVEK NA AI
                 const prompt = `Jsi botanik. Vrať JSON profil rostliny na fotce: {"name":"Název","category":["Kategorie 1", "Kategorie 2"],"description":"Základní charakteristika (max 2 věty)","water":"Detailní instrukce: jak často zalévat","light":"Nároky na světlo","tasks":[{"name":"Název úkolu","description":"Krátký popis, jak úkol provést","months":[2, 3]}]} (kde "months" je pole čísel měsíců 0-11, např. březen a duben je [2, 3]). 
-DŮLEŽITÉ PRAVIDLO PRO KATEGORIE: Vyber 1 až 2 nejvhodnější štítky z tohoto seznamu: Pokojové, Zelenina, Ovoce, Bylinky, Stromy, Keře. Například pro jabloň vrať ["Stromy", "Ovoce"]. 
+DŮLEŽITÉ PRAVIDLO PRO KATEGORIE: Vyber 1 až 2 nejvhodnější štítky z tohoto seznamu: Pokojové, Zelenina, Ovoce, Bylinky, Stromy, Keře. Například pro jabloň vrať ["Stromy", "Ovoce"].
+DŮLEŽITÉ PRAVIDLO PRO ÚKOLY: Pro název úkolu (vlastnost "name") máš přísný ZÁKAZ vymýšlet vlastní názvy. Smíš použít POUZE jeden z těchto přesných názvů: "Řez a tvarování", "Hnojení", "Zálivka", "Přesazování / Výsadba", "Ochrana a postřiky", "Sklizeň", nebo "Ostatní péče".
 Odpověz POUZE čistým JSON formátem bez dalších textů.`;
 
                 const payload = {
@@ -2759,7 +2677,24 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                         if (isForViewedMonth) {
                             totalTasksCount++;
                             const isDone = Array.isArray(task.completedMonths) && task.completedMonths.includes(globalPlannerMonth);
-                            const taskName = task.name;
+                            // --- CHYTRÝ FILTR NÁZVŮ ---
+                            let original = task.name.toLowerCase();
+                            let taskName = task.name; // Výchozí stav
+
+                            if (original.includes('řez') || original.includes('průklest') || original.includes('stříh')) {
+                                taskName = 'Řez a tvarování';
+                            } else if (original.includes('hnoj') || original.includes('přihnoj') || original.includes('npk')) {
+                                taskName = 'Hnojení';
+                            } else if (original.includes('záliv') || original.includes('zalév')) {
+                                taskName = 'Zálivka';
+                            } else if (original.includes('přesaz') || original.includes('sázen')) {
+                                taskName = 'Přesazování / Výsadba';
+                            } else if (original.includes('ochran') || original.includes('postřik') || original.includes('nemoc') || original.includes('škůdc')) {
+                                taskName = 'Ochrana a postřiky';
+                            } else if (original.includes('skliz') || original.includes('sběr')) {
+                                taskName = 'Sklizeň';
+                            }
+                            // --------------------------
 
                             // Pokud tento úkol vidíme poprvé, vytvoříme mu "chlíveček"
                             if (!groupedTasks[taskName]) {

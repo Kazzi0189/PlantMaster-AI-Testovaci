@@ -2040,6 +2040,15 @@
                 });
             };
         }
+        // Pomocná funkce pro fyzické stažení souboru do zařízení
+        function forceDownload(blob, fileName) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
 
         // Zde je definitivně uzavřená celá funkce zálohování
         // Zde je definitivně uzavřená celá funkce exportZip

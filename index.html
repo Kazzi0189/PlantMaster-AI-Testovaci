@@ -1976,32 +1976,71 @@
             tx.oncomplete = () => { closeDetail(); renderPlants(); };
         }
 
-        // 3. ZABALENÍ A PŘÍMÉ STAŽENÍ
-        zip.generateAsync({ type: "blob" }).then(async (blob) => {
-            const dnes = new Date();
-            const den = String(dnes.getDate()).padStart(2, '0');
-            const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
-            const rok = dnes.getFullYear();
 
-            const fileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
+        async function exportZip() {
+            showLoader('Připravuji pokročilou zálohu...');
+            const zip = new JSZip();
+            const db = await getDB();
+            const tx = db.transaction('plants', 'readonly');
+            const req = tx.objectStore('plants').getAll();
 
-            hideLoader(); // Schová načítací kolečko
-            forceDownload(blob, fileName); // Předá soubor prohlížeči ke stažení
+            req.onsuccess = async () => {
+                const plants = req.result;
 
-            // Upozornění, aby sis stahování všimnul, i když se prohlížeč nezeptá
-            setTimeout(() => alert("Záloha byla úspěšně připravena a stahuje se do vašeho zařízení!"), 500);
-        });
+                // 1. ZÁLOHA DAT
+                zip.file('databaze.json', JSON.stringify(plants));
+                zip.file('nastaveni.json', JSON.stringify({ key: localStorage.getItem('G_KEY') || "" }));
 
+                // 2. EXTRAKCE FOTEK DO SLOŽEK
+                let plantListTxt = "=== PŘEHLED ZAHRADY PLANTMASTER ===\n\n";
 
-        // Pomocná funkce pro klasické stažení
-        function forceDownload(blob, fileName) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+                plants.forEach(plant => {
+                    const safeName = (plant.name || "Neznama_rostlina").replace(/[^a-zA-Z0-9áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g, "_");
+                    const plantFolder = zip.folder(safeName);
+
+                    plantListTxt += `🌱 ${plant.name}\n`;
+                    plantListTxt += `   - Zálivka: ${plant.water || "Nezadáno"}\n`;
+
+                    if (plant.images && plant.images.length > 0) {
+                        plant.images.forEach((imgBase64, index) => {
+                            const base64Data = imgBase64.split(',')[1];
+                            if (base64Data) plantFolder.file(`galerie_${index + 1}.jpg`, base64Data, { base64: true });
+                        });
+                    }
+
+                    if (plant.medicalHistory && plant.medicalHistory.length > 0) {
+                        plantListTxt += `   - Zdravotních záznamů: ${plant.medicalHistory.length}\n`;
+                        plant.medicalHistory.forEach((entry, index) => {
+                            if (entry.photo) {
+                                const base64Data = entry.photo.split(',')[1];
+                                const dateStr = new Date(entry.date).toLocaleDateString('cs-CZ').replace(/\./g, '-').replace(/ /g, '');
+                                if (base64Data) plantFolder.file(`diagnoza_${dateStr}_${index + 1}.jpg`, base64Data, { base64: true });
+                            }
+                        });
+                    }
+                    plantListTxt += "\n";
+                });
+
+                zip.file('Prehled_zahrady.txt', plantListTxt);
+
+                // 3. ZABALENÍ A PŘÍMÉ STAŽENÍ (Bez zbytečných oken)
+                zip.generateAsync({ type: "blob" }).then(async (blob) => {
+                    const dnes = new Date();
+                    const den = String(dnes.getDate()).padStart(2, '0');
+                    const mesic = String(dnes.getMonth() + 1).padStart(2, '0');
+                    const rok = dnes.getFullYear();
+
+                    const fileName = `PlantMaster_Zaloha_${den}-${mesic}-${rok}.zip`;
+
+                    hideLoader(); // Schová načítací kolečko
+                    forceDownload(blob, fileName); // Předá soubor prohlížeči ke stažení
+
+                    // Upozornění, abys věděl, že se stahuje, i když se prohlížeč nezeptá
+                    setTimeout(() => alert("Záloha byla úspěšně připravena a stahuje se do vašeho zařízení!"), 500);
+                });
+            };
         }
+
         // Zde je definitivně uzavřená celá funkce zálohování
         // Zde je definitivně uzavřená celá funkce exportZip
         async function handleImport(event) {

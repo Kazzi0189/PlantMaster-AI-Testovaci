@@ -1182,32 +1182,34 @@
 
             req.onsuccess = () => {
                 let plant = req.result;
-                const currentMonth = new Date().getMonth();
+                const dnes = new Date();
+                const currentStamp = `${dnes.getFullYear()}-${dnes.getMonth()}`;
 
                 // 1. ZAZNAMENÁME SPLNĚNÍ (aby úkol zmizel z aktivních)
                 if (plant.tasks && Array.isArray(plant.tasks)) {
                     const task = plant.tasks.find(t => t.name === taskName);
                     if (task) {
                         if (!task.completedMonths) task.completedMonths = [];
-                        if (!task.completedMonths.includes(currentMonth)) {
-                            task.completedMonths.push(currentMonth);
+                        if (!task.completedMonths.includes(currentStamp)) {
+                            task.completedMonths.push(currentStamp);
                         }
                     }
                 }
+            }
 
-                // 2. ZAPÍŠEME DO HISTORIE
-                if (!plant.careHistory) plant.careHistory = [];
-                plant.careHistory.push({
-                    date: new Date().toLocaleDateString('cs-CZ'),
-                    text: `✅ Splněn úkol: ${taskName}${details}`
-                });
+            // 2. ZAPÍŠEME DO HISTORIE
+            if (!plant.careHistory) plant.careHistory = [];
+            plant.careHistory.push({
+                date: new Date().toLocaleDateString('cs-CZ'),
+                text: `✅ Splněn úkol: ${taskName}${details}`
+            });
 
-                store.put(plant);
-                tx.oncomplete = () => {
-                    renderPlants();
-                    if (currentPlantId === plantId) openDetail(plantId);
-                };
+            store.put(plant);
+            tx.oncomplete = () => {
+                renderPlants();
+                if (currentPlantId === plantId) openDetail(plantId);
             };
+        };
         }
 
         async function waterPlant() {
@@ -1358,7 +1360,11 @@
                         const isForViewedMonth = Array.isArray(task.months) ? task.months.includes(viewedMonth) : task.month === viewedMonth;
 
                         if (isForViewedMonth) {
-                            const isDone = Array.isArray(task.completedMonths) && task.completedMonths.includes(viewedMonth);
+                            // 🟢 NOVÁ LOGIKA: Kontroluje razítko "Rok-Měsíc" a pro letošek uznává i starý formát (jen číslo)
+                            const isDone = Array.isArray(task.completedMonths) && (
+                                task.completedMonths.includes(`${viewedYear}-${viewedMonth}`) ||
+                                (viewedYear === 2026 && task.completedMonths.includes(viewedMonth))
+                            );
 
                             // Pokud jsme v současnosti a úkol je hotový, v aktuálním měsíci ho už normálně neukazujeme (aby nezavazel)
                             if (viewedMonth === currentRealMonth && isDone) return;

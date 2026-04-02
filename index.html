@@ -2977,18 +2977,19 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
             req.onsuccess = () => {
                 let plants = req.result;
                 let updatedCount = 0;
-                const dnes = new Date().toISOString().split('T')[0];
+
+                // Použijeme už jen jeden správný formát s tečkami, který aplikace vyžaduje pro výpočty
                 const dnesZobrazeni = new Date().toLocaleDateString('cs-CZ');
 
                 plants.forEach(p => {
                     // Pokud je kategorie 'all' (vše), nebo se shoduje s výběrem
                     if (category === 'all' || p.category === category) {
 
-                        // 🛑 POJISTKA: Uložíme staré datum zálivky (aby šlo vrátit zpět)
+                        // 🛑 POJISTKA: Uložíme staré datum zálivky (i když byla nová a prázdná)
                         p.previousWatered = p.lastWatered;
 
-                        // Zapsání nového data
-                        p.lastWatered = dnes;
+                        // Zapsání nového data (nyní správně s tečkami)
+                        p.lastWatered = dnesZobrazeni;
 
                         // Zápis do historie s tajnou značkou (isBulk), abychom to uměli smazat
                         if (!p.careHistory) p.careHistory = [];
@@ -3018,7 +3019,7 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                     } else {
                         alert("V této kategorii aktuálně nemáte žádné rostliny.");
                     }
-                };;
+                };
             };
         }
 
@@ -3039,15 +3040,19 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
 
                 plants.forEach(p => {
                     if (category === 'all' || p.category === category) {
-                        // 🛑 OBNOVA: Vrátíme staré datum zálivky a vyčistíme pojistku
-                        if (p.previousWatered !== undefined) {
+                        // 🛑 OBNOVA: Bezpečně vrátíme starý stav a vyčistíme pojistku
+                        if ('previousWatered' in p) {
                             p.lastWatered = p.previousWatered;
                             delete p.previousWatered;
                         }
 
-                        // Smažeme záznam z historie (najde ten s naší tajnou značkou isBulk)
-                        if (p.careHistory) {
-                            p.careHistory = p.careHistory.filter(record => !record.isBulk);
+                        // BEZPEČNÉ SMAZÁNÍ Z HISTORIE: Zkontrolujeme jen ÚPLNĚ POSLEDNÍ záznam
+                        if (p.careHistory && p.careHistory.length > 0) {
+                            const lastRecord = p.careHistory[p.careHistory.length - 1];
+                            // Pokud byl poslední záznam vytvořen hromadnou zálivkou, odstraníme ho
+                            if (lastRecord.isBulk) {
+                                p.careHistory.pop();
+                            }
                         }
 
                         store.put(p);

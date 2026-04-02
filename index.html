@@ -1440,6 +1440,7 @@
                             if (task.taskProducts && task.taskProducts.length > 0 && viewedMonth === currentRealMonth) {
                                 productsHTML = `<div style="margin-top:10px; padding:10px; background:#f0f7f0; border-radius:8px; border:1px solid #c8e6c9;">
                             <div style="font-size:0.8rem; font-weight:bold; color:#2e7d32; margin-bottom:5px;">💡 Doporučené přípravky pro tento úkol:</div>`;
+
                                 task.taskProducts.forEach(prod => {
                                     productsHTML += `
                             <div style="margin-bottom:8px; border-bottom:1px dashed #ccc; padding-bottom:8px;">
@@ -1450,6 +1451,10 @@
                                 </div>
                             </div>`;
                                 });
+
+                                // --- NOVÉ TLAČÍTKO PRO SMAZÁNÍ DOPORUČENÍ ---
+                                productsHTML += `<button class="btn-sm-action" style="color:var(--warn, #d32f2f); border-color:var(--warn, #d32f2f); margin-top:10px; width:100%;" onclick="deleteTaskProducts('${task.name}')">🗑️ Smazat doporučení</button>`;
+
                                 productsHTML += `</div>`;
                             }
 
@@ -3062,6 +3067,45 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
 
                     alert("Hromadná zálivka byla úspěšně zrušena a data vrácena zpět.");
                     renderPlants(); // Překreslení hlavní obrazovky
+                };
+            };
+        }
+        async function deleteTaskProducts(taskName) {
+            if (!confirm("Opravdu chcete smazat doporučené přípravky pro tento úkol?")) return;
+
+            const db = await getDB();
+            const tx = db.transaction('plants', 'readwrite');
+            const store = tx.objectStore('plants');
+            const req = store.get(currentPlantId);
+
+            req.onsuccess = () => {
+                let plant = req.result;
+                if (!plant) return;
+
+                let wasDeleted = false;
+
+                // Najdeme úkol podle jména a smažeme mu přípravky z paměti
+                if (plant.tasks) {
+                    let targetTask = plant.tasks.find(t => t.name === taskName);
+                    if (targetTask && targetTask.taskProducts) {
+                        delete targetTask.taskProducts;
+                        wasDeleted = true;
+                    }
+                }
+
+                // Pojistka, kdyby to byl náhodou vlastní úkol (pokud používáš pole customTasks)
+                if (!wasDeleted && plant.customTasks) {
+                    let targetCustomTask = plant.customTasks.find(t => t.name === taskName);
+                    if (targetCustomTask && targetCustomTask.taskProducts) {
+                        delete targetCustomTask.taskProducts;
+                    }
+                }
+
+                store.put(plant);
+
+                tx.oncomplete = () => {
+                    // Okamžité překreslení okna, aby vizuální smog zmizel hned
+                    openDetail(currentPlantId);
                 };
             };
         }

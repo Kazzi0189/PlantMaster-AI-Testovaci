@@ -540,6 +540,69 @@
             margin: 0;
             /* Vyresetování případných mezer z jiných stylů */
         }
+
+        /* --- STYLY PRO MANUÁL (AKORDEON) --- */
+        .manual-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            /* Musí být nad vším ostatním */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+        }
+
+        .manual-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 650px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .accordion-btn {
+            background-color: #f1f8e9;
+            color: #2e7d32;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            text-align: left;
+            border: 1px solid #c8e6c9;
+            outline: none;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            transition: background-color 0.3s;
+        }
+
+        .accordion-btn:hover {
+            background-color: #dcedc8;
+        }
+
+        .accordion-panel {
+            padding: 15px;
+            background-color: white;
+            display: none;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #444;
+            border-left: 3px solid #8bc34a;
+            border-right: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 
@@ -549,7 +612,7 @@
         <h1>PlantMaster AI</h1>
         <span class="version-tag">Verze 22.0 (Stabilní a Kompletní)</span>
         <div class="header-btns">
-            <button class="btn-header" onclick="openGuide()" title="Návod k aplikaci"
+            <button class="btn-header" onclick="openManual()" title="Návod k aplikaci"
                 style="padding: 15px; margin: -10px 5px -10px -10px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: white;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -801,6 +864,64 @@
 
     <div id="loader">
         <div class="spinner"></div><span id="loader-text">Zpracovávám...</span>
+    </div>
+    <div id="manual-modal" class="manual-modal">
+        <div class="manual-content">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin:0; color:#1b5e20;">📖 Rádce PlantMaster</h2>
+                <button onclick="closeManual()"
+                    style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#f44336; outline:none;">✖</button>
+            </div>
+
+            <button class="accordion-btn" onclick="toggleAccordion(this)">🌱 Základy a Přehled úkolů <span
+                    class="acc-icon">▼</span></button>
+            <div class="accordion-panel">
+                <strong>Přidání rostliny:</strong> Pomocí plovoucích tlačítek (fotoaparát/galerie) vpravo dole můžete
+                rychle vyfotit nebo nahrát novou rostlinu.<br><br>
+                <strong>Dynamický kalendář:</strong> Na úvodní obrazovce vidíte úkoly na aktuální měsíc. Úkoly se do
+                kalendáře propisují z detailu každé rostliny podle toho, na který měsíc jsou naplánovány.<br><br>
+                <strong>Specifické úkoly:</strong> V detailu rostliny můžete plnit naplánované úkoly. Zeleně svítí
+                splněné, červeně ty, které jste v minulosti propásli.
+            </div>
+
+            <button class="accordion-btn" onclick="toggleAccordion(this)">💧 Zálivka a Historie péče <span
+                    class="acc-icon">▼</span></button>
+            <div class="accordion-panel">
+                <strong>Chytrá zálivka:</strong> V detailu rostliny si můžete nastavit interval zálivky (např. každých 7
+                dní). Aplikace bude sama odpočítávat dny a upozorní vás červeným štítkem "ŽÍZEŇ", když je čas.<br><br>
+                <strong>Hromadná zálivka:</strong> Na úvodní obrazovce (modré tlačítko Zálivka) můžete zalít více
+                rostlin najednou podle kategorie. Pokud se spletete, můžete ihned využít oranžové tlačítko "Vzít
+                zpět".<br><br>
+                <strong>Režim Dovolená/Pozastaveno:</strong> Pokud rostlina dočasně nepotřebuje péči (např. v zimě),
+                můžete jí v detailu zapnout pauzu zálivky.<br><br>
+                <strong>Historie péče:</strong> Každý úkon se propisuje do deníku na konci detailu rostliny. Chybné
+                záznamy lze pomocí křížku jednoduše smazat.
+            </div>
+
+            <button class="accordion-btn" onclick="toggleAccordion(this)">🤖 Umělá inteligence (Váš asistent) <span
+                    class="acc-icon">▼</span></button>
+            <div class="accordion-panel">
+                <strong>🔎 AI Detektiv:</strong> Nevíte, jakou odrůdu pěstujete? Vyfoťte ji a nechte umělou inteligenci
+                rostlinu identifikovat a uložit do profilu.<br><br>
+                <strong>🩺 AI Doktor a Lékařská karta:</strong> Pokud rostlina chřadne, vyfoťte problém. AI provede
+                diagnostiku a navrhne řešení. Výsledek se pro budoucí referenci natrvalo uloží do vaší Lékařské karty
+                (Historie diagnóz).<br><br>
+                <strong>💡 Doporučení produktů:</strong> U každého úkolu si můžete nechat poradit vhodnou chemii či
+                hnojiva. U každého doporučení najdete přímý proklik pro nákup (Heureka) nebo ověření dávkování v
+                profesionální databázi (Agromanuál).
+            </div>
+
+            <button class="accordion-btn" onclick="toggleAccordion(this)">🎥 Vzdělávání a YouTube Návody <span
+                    class="acc-icon">▼</span></button>
+            <div class="accordion-panel">
+                <strong>Chytré vyhledávání:</strong> V detailu rostliny využijte rychlá tlačítka (Řez, Hnojení,
+                Škůdci...), která automaticky vyhledají relevantní YouTube návody pro váš konkrétní druh
+                rostliny.<br><br>
+                <strong>Ukládání videí:</strong> Narazili jste na skvělý video návod? Zkopírujte jeho odkaz a jakmile se
+                vrátíte do aplikace, PlantMaster vám jej automaticky nabídne k uložení přímo do profilu dané rostliny.
+            </div>
+        </div>
     </div>
     <script>
         // --- 1. REGISTRACE SERVICE WORKERU ---
@@ -3119,6 +3240,35 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                 };
             };
         }
+        // --- FUNKCE PRO MANUÁL ---
+        function openManual() {
+            document.getElementById('manual-modal').style.display = 'block';
+        }
+
+        function closeManual() {
+            document.getElementById('manual-modal').style.display = 'none';
+        }
+
+        function toggleAccordion(btnElement) {
+            // Zavře všechny ostatní otevřené panely (volitelné chování, aby to bylo čisté)
+            let allPanels = document.querySelectorAll('.accordion-panel');
+            let allIcons = document.querySelectorAll('.acc-icon');
+
+            let panel = btnElement.nextElementSibling;
+            let icon = btnElement.querySelector('.acc-icon');
+            let isCurrentlyOpen = panel.style.display === "block";
+
+            // Schováme vše
+            allPanels.forEach(p => p.style.display = "none");
+            allIcons.forEach(i => i.innerText = "▼");
+
+            // Pokud to nebylo už otevřené, tak to rozbalíme
+            if (!isCurrentlyOpen) {
+                panel.style.display = "block";
+                icon.innerText = "▲";
+            }
+        }
+
 
     </script>
     <div id="bulk-water-modal" class="modal"

@@ -2556,62 +2556,19 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
         }
 
         // --- 📖 LOGIKA PRO NÁVOD A UVÍTÁNÍ ---
-        function openGuide() {
-            document.getElementById('guide-modal').style.display = 'block';
-        }
-
-        function closeGuide() {
-            document.getElementById('guide-modal').style.display = 'none';
-            localStorage.setItem('guide_seen', 'true');
-        }
 
         // Automatické otevření pro nováčky
         window.addEventListener('DOMContentLoaded', () => {
             const hasSeenGuide = localStorage.getItem('guide_seen');
             if (!hasSeenGuide) {
-                setTimeout(openGuide, 1000);
+                setTimeout(() => {
+                    openManual(); // Změněno na náš nový krásný manuál
+                    localStorage.setItem('guide_seen', 'true'); // POJISTKA: Zapisujeme, že uživatel už manuál viděl!
+                }, 1000);
             }
         });
     </script>
 
-    <div id="guide-modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; overflow-y:auto; padding:20px; box-sizing:border-box;">
-        <div
-            style="background:white; max-width:600px; margin:20px auto; border-radius:15px; padding:25px; position:relative; font-family:sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <button onclick="closeGuide()"
-                style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer; opacity:0.5;">✖</button>
-            <h2 style="margin-top:0; color:#4CAF50; border-bottom:2px solid #eee; padding-bottom:10px;">👋 Vítejte v
-                PlantMasteru!</h2>
-
-            <p style="font-size:0.95rem; line-height:1.5; color:#333;">Tato aplikace je váš osobní chytrý zahradník.
-                Tady je rychlý přehled funkcí:</p>
-
-            <div style="margin-bottom:15px;">
-                <h3 style="margin:10px 0 5px 0; font-size:1.1rem;">🌱 První kroky a fotky</h3>
-                <p style="margin:0; font-size:0.9rem; color:#555;">Přidejte rostlinu tlačítkem na hlavní obrazovce.
-                    Umělá inteligence ji pozná a vytvoří jí profil.</p>
-            </div>
-
-            <div style="margin-bottom:15px;">
-                <h3 style="margin:10px 0 5px 0; font-size:1.1rem;">💧 Péče a úkoly</h3>
-                <p style="margin:0; font-size:0.9rem; color:#555;">Sledujte zálivku a plňte úkoly. Pokud se spletete,
-                    stačí smazat záznam v <strong>Historii</strong> a úkol se vrátí zpět (Undo).</p>
-            </div>
-
-            <div style="margin-bottom:15px;">
-                <h3 style="margin:10px 0 5px 0; font-size:1.1rem;">🤖 AI Asistent v detailu</h3>
-                <p style="margin:0; font-size:0.9rem; color:#555;">
-                    <strong>🔎 Rozpoznat odrůdu:</strong> Určí přesný druh z fotek.<br>
-                    <strong>🩺 AI Doktor:</strong> Zkontroluje zdraví a navrhne léčbu.<br>
-                    <strong>💡 Hledat přípravky:</strong> Doporučí hnojiva a postřiky.
-                </p>
-            </div>
-
-            <button onclick="closeGuide()"
-                style="width:100%; padding:14px; background:#4CAF50; color:white; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; margin-top:15px;">Rozumím,
-                jdeme na to! 🚀</button>
-        </div>
-    </div>
 
     <div id="ai-doctor-modal"
         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; flex-direction:column; justify-content:center; align-items:center; padding: 20px; box-sizing: border-box;">

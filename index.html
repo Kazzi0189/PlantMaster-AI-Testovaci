@@ -1777,9 +1777,15 @@
                 if (plant.aiDiagnosis) {
                     let docContent = `<strong>🩺 Zdraví:</strong> ${plant.aiDiagnosis.description || plant.aiDiagnosis}`;
                     if (plant.aiDiagnosis.hasProblem && plant.aiDiagnosis.searchKeyword) {
-                        docContent += `<button class="btn-sm-action" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${plant.aiDiagnosis.searchKeyword}'), '_blank')">🔍 Ověřit na Agromanual.cz</button>`;
+                        // Tlačítko 1: Agromanuál (Léčba a chemie)
+                        docContent += `<button class="btn-sm-action" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${plant.aiDiagnosis.searchKeyword}'), '_blank')">💊 Čím stříkat (Agromanuál.cz)</button>`;
+
+                        // --- NOVÉ: Tlačítko 2: eAGRI (Vizuální potvrzení škůdce) ---
+                        // Využíváme tbm=isch pro přímé otevření Google Obrázků vyfiltrovaných jen na web eAGRI
+                        docContent += `<button class="btn-sm-action" style="background:#e8f5e9; color:#2e7d32; border-color:#81c784; margin-top:5px;" onclick="window.open('https://www.google.com/search?tbm=isch&q=site:eagri.cz/public/app/srs_pub/ ' + encodeURIComponent('${plant.aiDiagnosis.searchKeyword}'), '_blank')">📸 Porovnat fotky nemoci (eAGRI)</button>`;
                     }
-                    docContent += `<button class="btn-sm-action" style="color:var(--warn); border-color:var(--warn);" onclick="deleteAIMemory('aiDiagnosis')">🗑️ Smazat diagnózu</button>`;
+                    // Tlačítko 3: Smazání
+                    docContent += `<button class="btn-sm-action" style="color:var(--warn); border-color:var(--warn); margin-top:10px; width:100%;" onclick="deleteAIMemory('aiDiagnosis')">🗑️ Smazat diagnózu</button>`;
                     docBox.innerHTML = docContent;
                     docBox.style.display = 'block';
                 } else { docBox.style.display = 'none'; }

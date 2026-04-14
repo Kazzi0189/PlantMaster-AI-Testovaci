@@ -2417,6 +2417,9 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                     alert("Zpomalte prosím. 🚦 Překročili jsme chvilkový limit dotazů na umělou inteligenci. Počkejte minutu a zkuste to znovu.");
                 } else if (err.message === "NO_DATA") {
                     alert("Umělá inteligence nevrátila žádná data (zkontrolujte připojení k internetu).");
+                } else if (err.message.includes("503")) {
+                    // 🟢 NOVÁ POJISTKA PRO VÝPADKY GOOGLU
+                    alert("Omlouváme se, servery umělé inteligence jsou momentálně přetížené (Chyba 503). ⏳ Zkuste prosím fotku nahrát za pár minut znovu.");
                 } else {
                     alert("Chyba při analýze rostliny: " + err.message);
                 }

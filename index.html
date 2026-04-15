@@ -1781,10 +1781,9 @@
                         docContent += `<button class="btn-sm-action" onclick="window.open('https://www.google.com/search?q=site:agromanual.cz ' + encodeURIComponent('${plant.aiDiagnosis.searchKeyword}'), '_blank')">💊 Čím stříkat (Agromanuál.cz)</button>`;
 
                         // --- OPRAVA: Tlačítko 2: Google Obrázky (eAGRI) ---
-                        // Ochrana proti dlouhým textům: Vezmeme jen první část před čárkou a osekáme mezery
                         let shortKeyword = plant.aiDiagnosis.searchKeyword.split(',')[0].trim();
-                        // Hledáme na celé doméně eagri.cz
-                        docContent += `<button class="btn-sm-action" style="background:#e8f5e9; color:#2e7d32; border-color:#81c784; margin-top:5px;" onclick="window.open('https://www.google.com/search?tbm=isch&q=site:eagri.cz ' + encodeURIComponent(shortKeyword), '_blank')">📸 Porovnat fotky nemoci (eAGRI)</button>`;
+                        // Zde je oprava: shortKeyword je nyní správně vloženo jako text do odkazu pomocí '${shortKeyword}'
+                        docContent += `<button class="btn-sm-action" style="background:#e8f5e9; color:#2e7d32; border-color:#81c784; margin-top:5px;" onclick="window.open('https://www.google.com/search?tbm=isch&q=site:eagri.cz ' + encodeURIComponent('${shortKeyword}'), '_blank')">📸 Porovnat fotky nemoci (eAGRI)</button>`;
                     }
                     // Tlačítko 3: Smazání
                     docContent += `<button class="btn-sm-action" style="color:var(--warn); border-color:var(--warn); margin-top:10px; width:100%;" onclick="deleteAIMemory('aiDiagnosis')">🗑️ Smazat diagnózu</button>`;

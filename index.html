@@ -2361,10 +2361,12 @@
                 const b64Data = resizedBase64.split(',')[1];
 
                 // 2. POŽADAVEK NA AI
-                const prompt = `Jsi botanik. Vrať JSON profil rostliny na fotce: {"name":"Název","category":["Kategorie 1", "Kategorie 2"],"description":"Základní charakteristika (max 2 věty)","water":"Detailní instrukce: jak často zalévat","light":"Nároky na světlo","tasks":[{"name":"Název úkolu","description":"Krátký popis, jak úkol provést","months":[2, 3]}]} (kde "months" je pole čísel měsíců 0-11, např. březen a duben je [2, 3]). 
+                const prompt = `Jsi botanik. Vrať JSON profil rostliny na fotce: {"name":"Název","category":["Kategorie 1", "Kategorie 2"],"description":"Základní charakteristika (max 3 věty). VŽDY zde na konci zmiň zemi původu a případnou toxicitu pro lidi/zvířata.","water":"Detailní instrukce: jak často zalévat","wateringInterval":7,"light":"Nároky na světlo","tasks":[{"name":"Název úkolu","description":"Krátký popis, jak úkol provést","months":[2, 3]}]} (kde "months" je pole čísel měsíců 0-11). 
 DŮLEŽITÉ PRAVIDLO PRO KATEGORIE: Vyber 1 až 2 nejvhodnější štítky z tohoto seznamu: Pokojové, Zelenina, Ovoce, Bylinky, Stromy, Keře. Například pro jabloň vrať ["Stromy", "Ovoce"].
-DŮLEŽITÉ PRAVIDLO PRO ÚKOLY: Pro název úkolu (vlastnost "name") máš přísný ZÁKAZ vymýšlet vlastní názvy. Smíš použít POUZE jeden z těchto přesných názvů: "Řez a tvarování", "Hnojení", "Zálivka", "Přesazování / Výsadba", "Ochrana a postřiky", "Sklizeň", nebo "Ostatní péče".
+DŮLEŽITÉ PRAVIDLO PRO ÚKOLY: Pro název úkolu máš přísný ZÁKAZ vymýšlet vlastní názvy. Smíš použít POUZE jeden z těchto přesných názvů: "Řez a tvarování", "Hnojení", "Zálivka", "Přesazování / Výsadba", "Ochrana a postřiky", "Sklizeň", nebo "Ostatní péče".
+DŮLEŽITÉ PRAVIDLO PRO ZÁLIVKU: "wateringInterval" MUSÍ BÝT ČÍSLO (odhadovaný počet dní mezi zálivkami v běžných podmínkách, např. 7).
 Odpověz POUZE čistým JSON formátem bez dalších textů.`;
+                
 
                 const payload = {
                     contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: b64Data } }] }],
@@ -2401,6 +2403,7 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                     category: aiData.category || "Ostatní",
                     description: aiData.description || "",
                     water: aiData.water || "",
+                    wateringInterval: aiData.wateringInterval || 7, // 🟢 TADY JSME PŘIDALI PŘÍJEM ČÍSELNÉHO INTERVALU
                     light: aiData.light || "",
                     images: [resizedBase64],
                     tasks: aiData.tasks || {},

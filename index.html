@@ -655,14 +655,14 @@
         </div>
 
         <div style="position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; margin-top: -10px;">
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="search-box" placeholder="Hledat..."
-                    oninput="renderPlants(); renderGlobalPlannerContent()" ...>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+                <input type="text" id="search-box" placeholder="Hledat rostlinu..."
+                    oninput="renderPlants(); renderGlobalPlannerContent()"
+                    style="padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem; outline: none; width: 100%; box-sizing: border-box;">
 
                 <select class="filter-select" id="filter-category"
-                    onchange="renderPlants(); renderGlobalPlannerContent()" ...>
-                    style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem;
-                    outline: none; background: white; color: #444; box-sizing: border-box; margin: 0;">
+                    onchange="renderPlants(); renderGlobalPlannerContent()"
+                    style="padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem; outline: none; background: white; color: #444; width: 100%; box-sizing: border-box;">
                     <option value="all">Všechny kategorie</option>
                     <option value="Pokojové">Pokojové</option>
                     <option value="Zelenina">Zelenina</option>
@@ -2901,12 +2901,14 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
 
             request.onsuccess = () => {
                 const allPlants = request.result;
-                let groupedTasks = {}; // Zde budeme sdružovat úkoly
+                let groupedTasks = {};
                 let totalTasksCount = 0;
 
                 // 🟢 1. NAČTENÍ AKTUÁLNÍHO STAVU FILTRŮ Z OBRAZOVKY
-                const currentCategory = document.getElementById('filter-category') ? document.getElementById('filter-category').value : 'all';
-                const currentSearch = document.getElementById('search-box') ? document.getElementById('search-box').value.toLowerCase() : '';
+                const filterEl = document.getElementById('filter-category');
+                const searchEl = document.getElementById('search-box');
+                const currentCategory = filterEl ? filterEl.value : 'all';
+                const currentSearch = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
                 // --- SDÍLENÁ CHYTRÁ ČISTIČKA ---
                 function getOfficialTaskName(name) {
@@ -2924,12 +2926,11 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                     // 🚨 PŘIDANÁ OCHRANA: Pokud úkoly neexistují, přeskočit!
                     if (!plant.tasks || !Array.isArray(plant.tasks) || plant.tasks.length === 0) return;
 
-                    // 🟢 2. PŘÍSNÝ VYHAZOVAČ (FILTR)
+                    // 🟢 2. PŘÍSNÝ VYHAZOVAČ S OPRAVENOU LOGIKOU (poradí si s vícero kategoriemi s čárkou)
                     // Kontrola kategorie
                     if (currentCategory !== 'all') {
-                        // Převedeme kategorii na text pro jistotu a zkontrolujeme shodu
-                        const catString = String(plant.category || "");
-                        if (!catString.includes(currentCategory)) return; // Vyhodíme rostlinu z kalendáře
+                        const plantCat = String(plant.category || "");
+                        if (!plantCat.includes(currentCategory)) return; // Vyhodíme rostlinu z kalendáře
                     }
 
                     // Kontrola vyhledávání textu
@@ -2987,7 +2988,7 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                 if (totalTasksCount === 0) {
                     contentDiv.innerHTML = `<div style="text-align:center; padding: 30px 10px; color: #888;">
                         <div style="font-size: 2rem; margin-bottom: 10px;">🌴</div>
-                        Nic tu není. Vaše zahrada v tomto měsíci odpočívá.
+                        Žádné úkoly pro tento výběr.
                     </div>`;
                     return;
                 }

@@ -1216,11 +1216,38 @@
             const groupedTasks = {};
             let hasAnyTask = false;
 
+            // 🟢 1. NAČTENÍ AKTUÁLNÍHO STAVU FILTRŮ (Vyhazovač)
+            const filterEl = document.getElementById('filter-category');
+            const searchEl = document.getElementById('search-box');
+            const currentCategory = filterEl ? filterEl.value : 'all';
+            const currentSearch = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+            // --- 2. SDÍLENÁ CHYTRÁ ČISTIČKA NÁZVŮ ---
+            function getOfficialTaskName(name) {
+                const n = name.toLowerCase();
+                if (n.includes('hnoj') || n.includes('přihnoj') || n.includes('npk')) return 'Hnojení';
+                if (n.includes('škůdc') || n.includes('chorob') || n.includes('postřik') || n.includes('ošetř') || n.includes('kontrol') || n.includes('nemoc')) return 'Ochrana a postřiky';
+                if (n.includes('řez') || n.includes('stříh') || n.includes('tvarov') || n.includes('průklest')) return 'Řez a tvarování';
+                if (n.includes('sadb') || n.includes('sáz') || n.includes('přesaz')) return 'Přesazování / Výsadba';
+                if (n.includes('skliz') || n.includes('sběr')) return 'Sklizeň';
+                if (n.includes('záliv') || n.includes('zalév') || n.includes('vod')) return 'Zálivka';
+                return 'Ostatní péče';
+            }
+
             plants.forEach(plant => {
                 if (!plant.tasks || !Array.isArray(plant.tasks)) return;
 
+                // 🟢 3. PŘÍSNÁ KONTROLA FILTRŮ
+                if (currentCategory !== 'all') {
+                    const plantCat = String(plant.category || "");
+                    if (!plantCat.includes(currentCategory)) return; // Přeskočit rostlinu
+                }
+                if (currentSearch !== '') {
+                    if (!plant.name || !plant.name.toLowerCase().includes(currentSearch)) return; // Přeskočit rostlinu
+                }
+
                 plant.tasks.forEach(task => {
-                    // ZMÍRNĚNÁ LOGIKA: Pokud task nemá nastavený měsíc, bereme ho automaticky jako aktuální
+                    // Ponechána tvá zmírněná logika měsíců
                     let isForThisMonth = true;
                     if (task.months !== undefined) {
                         isForThisMonth = Array.isArray(task.months) ? task.months.includes(currentMonth) : task.months === currentMonth;
@@ -1229,21 +1256,27 @@
                     }
 
                     if (isForThisMonth) {
-                        const groupKey = `${task.name}|${plant.category || 'Neznámá'}`;
+                        // Normalizace názvu
+                        const officialTaskName = getOfficialTaskName(task.name || 'Neznámý úkol');
+                        const groupKey = `${officialTaskName}|${plant.category || 'Neznámá'}`;
 
                         if (!groupedTasks[groupKey]) {
                             groupedTasks[groupKey] = {
-                                taskName: task.name || 'Neznámý úkol',
+                                taskName: officialTaskName,
                                 taskDesc: task.desc || task.description || '',
                                 category: plant.category || 'Neznámá',
                                 plantsTotal: [],
                                 plantsCompleted: []
                             };
+                        } else {
+                            // Slučování popisků pro podúkoly
+                            const currentDesc = task.desc || task.description || '';
+                            if (currentDesc && !groupedTasks[groupKey].taskDesc.includes(currentDesc)) {
+                                groupedTasks[groupKey].taskDesc += `<br><br><strong>Další tipy:</strong> ${currentDesc}`;
+                            }
                         }
 
-                        groupedTasks[groupKey].plantsTotal.push(plant.name);
-
-                        // Kontrola splnění
+                        // Ponechána tvá kontrola splnění
                         let isCompleted = false;
                         if (Array.isArray(task.completedMonths) && task.completedMonths.includes(currentMonth)) {
                             isCompleted = true;
@@ -1251,8 +1284,17 @@
                             isCompleted = true;
                         }
 
-                        if (isCompleted) {
-                            groupedTasks[groupKey].plantsCompleted.push(plant.name);
+                        // Ochrana proti duplicitám ("Jabloň, Jabloň")
+                        if (!groupedTasks[groupKey].plantsTotal.includes(plant.name)) {
+                            groupedTasks[groupKey].plantsTotal.push(plant.name);
+                            if (isCompleted) {
+                                groupedTasks[groupKey].plantsCompleted.push(plant.name);
+                            }
+                        } else {
+                            // Rostlina je tam, ale tento pod-úkol ještě nemá hotový -> vyhodíme ji ze splněných
+                            if (!isCompleted) {
+                                groupedTasks[groupKey].plantsCompleted = groupedTasks[groupKey].plantsCompleted.filter(n => n !== plant.name);
+                            }
                         }
                     }
                 });

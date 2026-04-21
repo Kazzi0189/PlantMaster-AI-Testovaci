@@ -1899,8 +1899,12 @@
                 // --- Historie ---
                 const tl = document.getElementById('detail-timeline');
                 tl.innerHTML = '';
-                [...plant.careHistory].reverse().forEach((h, idx) => {
-                    let realIndex = plant.careHistory.length - 1 - idx;
+
+                // ✨ OCHRANNÁ BRZDA: Pokud historie chybí, vytvoříme prázdné pole, aby to nespadlo
+                const safeHistory = plant.careHistory || [];
+
+                [...safeHistory].reverse().forEach((h, idx) => {
+                    let realIndex = safeHistory.length - 1 - idx; // Opravena reference na bezpečné pole
                     tl.innerHTML += `<div class="timeline-item" style="display:flex; justify-content:space-between; align-items:center;">
         <div><strong>${h.date}:</strong> ${h.text}</div>
         <button onclick="deleteHistoryItem(${realIndex})" style="background:none; border:none; color:var(--warn); cursor:pointer;">❌</button>
@@ -3637,7 +3641,8 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                 category: "Neznámá", // AI to později upraví
                 needsAICare: true, // ✨ TOTO JE NÁŠ NOVÝ UKAZATEL!
                 wateringPaused: false,
-                lastWatered: null
+                lastWatered: null,
+                careHistory: [{ date: new Date().toLocaleDateString('cs-CZ'), text: 'Rostlina přidána ručně.' }] // ✨ OPRAVA: Založení historie
             };
 
             // Pokud uživatel vybral i fotku, převedeme ji na Base64

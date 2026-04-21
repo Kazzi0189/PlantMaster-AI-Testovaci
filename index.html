@@ -1184,6 +1184,12 @@
                     }
 
                     if (matchName && matchCat) {
+                        // ✨ NAŠE NOVÁ LOGIKA PRO ŠTÍTEK ✨
+                        let setupBadge = '';
+                        if (p.needsAICare) {
+                            setupBadge = `<div style="margin-top: 8px;"><span style="background-color: #ff9800; color: white; font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(255,152,0,0.3); display: inline-block;">✨ Vyžaduje nastavení péče</span></div>`;
+                        }
+
                         list.innerHTML += `
             <div class="card" onclick="openDetail(${p.id})">
                 <img src="${mainImage}" loading="lazy">
@@ -1191,7 +1197,7 @@
                     <h3>${p.name} ${waterWarning}</h3>
                     <div style="margin-bottom: 5px;">${badgesHTML}</div>
                     <p>Zalito: ${p.lastWatered || 'Nikdy'}</p>
-                </div>
+                    ${setupBadge} </div>
             </div>
         `;
                     }
@@ -1710,6 +1716,13 @@
             req.onsuccess = () => {
                 const plant = req.result;
                 if (!plant) return;
+
+                // ✨ NAŠE NOVÁ VÝHYBKA ZAČÍNÁ ZDE ✨
+                if (plant.needsAICare) {
+                    document.getElementById('ai-setup-modal').style.display = 'flex';
+                    return; // Zastavíme vykreslování normálního detailu!
+                }
+                // ✨ KONEC VÝHYBKY ✨
 
                 // Titulek
                 document.getElementById('detail-title').innerHTML = `${plant.name} <span onclick="editPlantName()" style="cursor:pointer; font-size:1.1rem; padding-left:8px; opacity:0.8;">✏️</span>`;
@@ -2767,6 +2780,35 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
         </div>
     </div>
 
+    <div id="ai-setup-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; flex-direction:column; justify-content:center; align-items:center; padding: 20px; box-sizing: border-box;">
+
+        <div
+            style="background:#fff; width:100%; max-width: 400px; border-radius:20px; padding:30px 20px; box-sizing:border-box; position:relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align:center;">
+
+            <button onclick="closeAISetupModal()"
+                style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer; color:#666;">✖</button>
+
+            <div style="font-size: 3rem; margin-bottom: 10px;">✨</div>
+            <h2 style="margin-top:0; color:#ff9800; font-size:1.5rem; margin-bottom: 10px;">
+                Rostlina čeká na péči</h2>
+            <p style="color:#555; font-size:0.95rem; margin-bottom: 25px; line-height: 1.5;">
+                Tato rostlina byla přidána ručně a zatím nemá nastavený plán zálivky ani úkoly. Chceš, aby to AI
+                doplnila za tebe?
+            </p>
+
+            <button onclick="startAISetup()"
+                style="width: 100%; background:var(--p, #2e7d32); color:white; border:none; border-radius:12px; padding:15px; font-size:1.1rem; cursor:pointer; font-weight:bold; box-shadow: 0 4px 10px rgba(46,125,50,0.3); margin-bottom: 10px;">
+                🤖 Vygenerovat péči přes AI
+            </button>
+
+            <button onclick="closeAISetupModal()"
+                style="width: 100%; background:none; color:#666; border:none; padding:10px; font-size:0.95rem; cursor:pointer; text-decoration: underline;">
+                Zrušit
+            </button>
+        </div>
+    </div>
+
     <script>
         // --- 1. MOZEK: HYBRIDNÍ AI DOKTOR ---
         function openAIDoctorModal() {
@@ -3631,6 +3673,77 @@ Odpověz POUZE čistým JSON formátem bez dalších textů.`;
                 hideLoader();
                 console.error("Chyba při ukládání rostliny:", error);
                 alert("Nepodařilo se uložit rostlinu.");
+            }
+        }
+
+        function closeAISetupModal() {
+            document.getElementById('ai-setup-modal').style.display = 'none';
+        }
+
+        // Speciální mini-verze tvého callAI určená POUZE pro dokončení ruční rostliny
+        async function startAISetup() {
+            closeAISetupModal();
+            const key = localStorage.getItem('G_KEY');
+            if (!key) return alert("Zadejte Gemini API Klíč v nastavení!");
+
+            showLoader("AI generuje plán péče...");
+
+            try {
+                const db = await getDB();
+                const plant = await new Promise((resolve, reject) => {
+                    const tx = db.transaction('plants', 'readonly');
+                    const req = tx.objectStore('plants').get(currentPlantId);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+
+                // Náš prompt připravený na to, že rostlina možná NEMÁ fotku
+                const prompt = `Jsi botanik. Pro rostlinu s názvem "${plant.name}" vrať JSON profil: {"category":["Kategorie 1"],"description":"Základní charakteristika. Zmiň toxicitu a původ.","water":"Detailní instrukce: jak často zalévat","wateringInterval":7,"light":"Nároky na světlo","tasks":[{"name":"Zálivka","description":"Popis","months":[2, 3]}]}. DŮLEŽITÉ PRAVIDLO PRO ÚKOLY: POUZE tyto přesné názvy: "Řez a tvarování", "Hnojení", "Zálivka", "Přesazování / Výsadba", "Ochrana a postřiky", "Sklizeň", "Ostatní péče". Odpověz POUZE čistým JSON formátem.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { response_mime_type: "application/json" }
+                };
+
+                // Pokud uživatel při ručním zadávání nahrál i fotku, pošleme ji AI k lepší analýze
+                if (plant.images && plant.images.length > 0) {
+                    payload.contents[0].parts.push({
+                        inline_data: { mime_type: "image/jpeg", data: plant.images[0].split(',')[1] }
+                    });
+                }
+
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+                    method: 'POST', body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) throw new Error("Chyba API");
+                const data = await resp.json();
+                const aiResponse = data.candidates[0].content.parts[0].text;
+                const aiData = JSON.parse(extractJSON(aiResponse));
+
+                // Magie! Doplňujeme data a MAŽEME oranžový štítek
+                plant.category = aiData.category || "Ostatní";
+                plant.description = aiData.description || "";
+                plant.water = aiData.water || "";
+                plant.wateringInterval = aiData.wateringInterval || 7;
+                plant.light = aiData.light || "";
+                plant.tasks = aiData.tasks || [];
+                delete plant.needsAICare; // 💥 Tohle je klíčové, už nikdy se neukáže oranžový štítek
+
+                // Uložení zpět do tvé databáze
+                const saveTx = db.transaction('plants', 'readwrite');
+                saveTx.objectStore('plants').put(plant);
+
+                saveTx.oncomplete = () => {
+                    hideLoader();
+                    renderPlants(); // Překreslíme seznam (štítek zmizí)
+                    openDetail(currentPlantId); // A nyní konečně otevřeme tvůj krásný, standardní detail!
+                };
+
+            } catch (err) {
+                hideLoader();
+                console.error(err);
+                alert("Chyba při generování péče. Zkontrolujte API klíč nebo zkuste později.");
             }
         }
 

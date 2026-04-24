@@ -1915,6 +1915,89 @@
                 if (typeof renderMedicalArchive === 'function') renderMedicalArchive();
             };
         }
+        async function exportToCalendar(id, event) {
+            // Zabránění, aby se nám po kliknutí nezavřelo nebo neprokliklo něco jiného
+            if (event) event.stopPropagation();
+
+            // 1. Přátelská nápověda pro pořádek (čeká na odkliknutí OK)
+            alert('Tip pro pořádek: Až se vás telefon zeptá, uložte si tuto událost do samostatného kalendáře (např. "Zahrada-PlantMaster"), abyste ji mohli kdykoliv hromadně vypnout nebo smazat.');
+
+            const db = await getDB();
+            const tx = db.transaction('plants', 'readonly');
+            const store = tx.objectStore('plants');
+            const req = store.get(id);
+
+            req.onsuccess = () => {
+                const p = req.result;
+                if (!p) return;
+
+                const interval = p.wateringInterval || 7;
+                let targetDate = new Date();
+
+                // 2. Výpočet data prvního zvonění
+                if (p.lastWatered) {
+                    const parts = p.lastWatered.split('.').map(part => part.trim());
+                    if (parts.length === 3) {
+                        targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                        // Přičteme interval k datu poslední zálivky
+                        targetDate.setDate(targetDate.getDate() + interval);
+                    }
+                } else {
+                    // Pokud ještě nebyla zalitá, nastavíme budík rovnou na zítřek
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+
+                // Formátování data pro ICS soubor (YYYYMMDD)
+                const year = targetDate.getFullYear();
+                const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                const day = String(targetDate.getDate()).padStart(2, '0');
+                const dateString = `${year}${month}${day}`;
+
+                // 3. Tvorba standardizovaného ICS souboru
+                // DTSTART: T140000 = 14:00 lokálního času
+                // VALARM 1: -PT0M = přesně v čase události (14:00)
+                // VALARM 2: PT2H = 2 hodiny po začátku události (16:00)
+                const icsLines = [
+                    "BEGIN:VCALENDAR",
+                    "VERSION:2.0",
+                    "PRODID:-//PlantMaster//CS",
+                    "BEGIN:VEVENT",
+                    `SUMMARY:💧 Zalít: ${p.name}`,
+                    `DTSTART:${dateString}T140000`,
+                    `DTEND:${dateString}T150000`,
+                    `RRULE:FREQ=DAILY;INTERVAL=${interval}`,
+                    `DESCRIPTION:Pravidelná zálivka pro rostlinu: ${p.name}.`,
+                    "BEGIN:VALARM",
+                    "TRIGGER:-PT0M",
+                    "ACTION:DISPLAY",
+                    "DESCRIPTION:Připomenutí zálivky",
+                    "END:VALARM",
+                    "BEGIN:VALARM",
+                    "TRIGGER:PT2H",
+                    "ACTION:DISPLAY",
+                    "DESCRIPTION:Druhé připomenutí zálivky",
+                    "END:VALARM",
+                    "END:VEVENT",
+                    "END:VCALENDAR"
+                ];
+
+                // Spojíme řádky speciálním znakem pro odřádkování, který kalendáře vyžadují
+                const icsContent = icsLines.join('\r\n');
+
+                // 4. Vygenerování a stažení souboru
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+
+                // Vytvoříme bezpečný název souboru bez diakritiky a mezer
+                const safeName = p.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_");
+                link.download = `zalivka_${safeName}.ics`;
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+        }
 
         function closeDetail() {
             document.getElementById('detail-view').style.display = 'none';
